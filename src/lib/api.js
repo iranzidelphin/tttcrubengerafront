@@ -1,4 +1,9 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+const fallbackApiBaseUrl =
+  typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+    ? 'https://ttcrubengeraback-2.onrender.com/api'
+    : 'http://localhost:3002/api';
+
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || fallbackApiBaseUrl;
 export const SERVER_BASE_URL = API_BASE_URL.replace(/\/api$/, '');
 
 export function getStoredToken() {
