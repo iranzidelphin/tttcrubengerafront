@@ -469,6 +469,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -525,7 +526,12 @@ function LoginPage() {
             </div>
             <div>
               <label className="block text-sm font-bold text-gs-dark mb-1">{t('password')}</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-gs-accent" placeholder="••••••••" required />
+              <div className="relative">
+                <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 pr-12 border border-gray-300 rounded focus:outline-none focus:border-gs-accent" placeholder="••••••••" required />
+                <button type="button" onClick={() => setShowPassword((current) => !current)} className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gs-dark" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                  <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                </button>
+              </div>
             </div>
             <button type="submit" disabled={loading} className="w-full py-3 bg-gs-accent text-white font-bold rounded hover:bg-orange-700 transition-colors disabled:opacity-50">
               {loading ? t('signingIn') : t('signIn')}
@@ -555,9 +561,10 @@ function RegisterPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [role, setRole] = useState('student');
-  const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const roleDescriptions = {
@@ -573,12 +580,11 @@ function RegisterPage() {
     setError('');
     
     try {
-      const nameParts = username.trim().split(' ');
+      const nameParts = fullName.trim().split(' ');
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
       const data = await apiJson('/auth/register', 'POST', {
-        username,
         email,
         password,
         role,
@@ -632,16 +638,21 @@ function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-gs-dark mb-1">{t('username')}</label>
-              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-gs-accent" placeholder={t('enterUsername')} required />
+              <label className="block text-sm font-bold text-gs-dark mb-1">{t('fullName')}</label>
+              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-gs-accent" placeholder="John Doe" required />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gs-dark mb-1">Email or username</label>
-              <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-gs-accent" placeholder="your@email.com or ttcradmin" required />
+              <label className="block text-sm font-bold text-gs-dark mb-1">{t('email')}</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-gs-accent" placeholder="your@email.com" required />
             </div>
             <div>
               <label className="block text-sm font-bold text-gs-dark mb-1">{t('password')}</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-gs-accent" placeholder="••••••••" required minLength={6} />
+              <div className="relative">
+                <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-2 pr-12 border border-gray-300 rounded focus:outline-none focus:border-gs-accent" placeholder="••••••••" required minLength={6} />
+                <button type="button" onClick={() => setShowPassword((current) => !current)} className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gs-dark" aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                  <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                </button>
+              </div>
             </div>
             
             <button type="submit" disabled={loading} className="w-full py-3 bg-gs-accent text-white font-bold rounded hover:bg-orange-700 transition-colors disabled:opacity-50">
@@ -860,3 +871,8 @@ function App() {
 }
 
 export default App;
+
+
+
+
+
