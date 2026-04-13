@@ -1,21 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { apiJson, apiRequest, buildFileUrl, getStoredUser } from '../lib/api';
 import { getSocket } from '../lib/socket';
 
 function DashboardShell({ user, onLogout, title, subtitle, accentClass = 'bg-gs-dark', children }) {
+  const { t } = useTranslation();
   return (
     <div className="bg-white/95 rounded-[28px] shadow-2xl overflow-hidden border border-white/60">
-      <div className={`${accentClass} text-white p-8`}>
+      <div className={`${accentClass} text-white p-6 md:p-8`}>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
             <img
               src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName)}&background=1A3C34&color=fff`}
-              className="w-14 h-14 rounded-full border-2 border-white/30"
+              className="w-12 md:w-14 rounded-full border-2 border-white/30"
               alt={user.fullName}
             />
             <div>
-              <h3 className="font-serif text-3xl">{title}</h3>
+              <h3 className="font-serif text-2xl md:text-3xl">{title}</h3>
               <p className="text-white/80 text-sm">{subtitle}</p>
             </div>
           </div>
@@ -24,12 +26,12 @@ function DashboardShell({ user, onLogout, title, subtitle, accentClass = 'bg-gs-
               {user.role}
             </span>
             <button onClick={onLogout} className="px-4 py-2 rounded-full bg-white text-gs-dark font-bold">
-              Logout
+              {t('logout')}
             </button>
           </div>
         </div>
       </div>
-      <div className="p-6 md:p-8 bg-gradient-to-br from-white to-[#f8f2eb]">{children}</div>
+      <div className="p-4 md:p-8 bg-gradient-to-br from-white to-[#f8f2eb]">{children}</div>
     </div>
   );
 }
@@ -38,7 +40,7 @@ function TabButton({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
+      className={`px-3 md:px-4 py-2 rounded-full text-xs md:text-sm font-bold transition-all ${
         active ? 'bg-gs-accent text-white shadow-lg' : 'bg-white text-gs-dark border border-gs-dark/10'
       }`}
     >
@@ -49,10 +51,10 @@ function TabButton({ active, onClick, children }) {
 
 function Panel({ title, subtitle, children, action }) {
   return (
-    <section className="bg-white rounded-3xl p-6 shadow-sm border border-black/5">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+    <section className="bg-white rounded-3xl p-4 md:p-6 shadow-sm border border-black/5">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4 md:mb-6">
         <div>
-          <h4 className="font-serif text-2xl text-gs-dark">{title}</h4>
+          <h4 className="font-serif text-xl md:text-2xl text-gs-dark">{title}</h4>
           {subtitle ? <p className="text-sm text-gray-500 mt-1">{subtitle}</p> : null}
         </div>
         {action}
@@ -63,18 +65,20 @@ function Panel({ title, subtitle, children, action }) {
 }
 
 function EmptyState({ text }) {
-  return <div className="rounded-2xl bg-[#f7f5f1] p-8 text-center text-gray-500">{text}</div>;
+  const { t } = useTranslation();
+  return <div className="rounded-2xl bg-[#f7f5f1] p-6 md:p-8 text-center text-gray-500 text-sm md:text-base">{text}</div>;
 }
 
 function AnnouncementList({ announcements }) {
+  const { t } = useTranslation();
   if (!announcements.length) {
-    return <EmptyState text="No announcements available yet." />;
+    return <EmptyState text={t('noAnnouncementsAvailableYet')} />;
   }
 
   return (
     <div className="space-y-4">
       {announcements.map((item) => (
-        <article key={item.id} className="rounded-2xl border border-gs-dark/10 bg-[#fffaf4] p-5">
+        <article key={item.id} className="rounded-2xl border border-gs-dark/10 bg-[#fffaf4] p-4 md:p-5">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
             <div>
               <div className="flex gap-2 flex-wrap mb-2">
@@ -82,7 +86,7 @@ function AnnouncementList({ announcements }) {
                   {item.createdByRole}
                 </span>
                 {item.visibleToGuests ? (
-                  <span className="text-xs px-2 py-1 rounded-full bg-gs-dark text-white">public</span>
+                  <span className="text-xs px-2 py-1 rounded-full bg-gs-dark text-white">{t('public')}</span>
                 ) : null}
                 {item.targetRoles.map((role) => (
                   <span key={role} className="text-xs px-2 py-1 rounded-full bg-white border border-gs-dark/10">
@@ -90,10 +94,10 @@ function AnnouncementList({ announcements }) {
                   </span>
                 ))}
               </div>
-              <h5 className="font-serif text-xl text-gs-dark">{item.title}</h5>
-              <p className="text-gray-600 mt-2">{item.message}</p>
+              <h5 className="font-serif text-lg md:text-xl text-gs-dark">{item.title}</h5>
+              <p className="text-gray-600 mt-2 text-sm md:text-base">{item.message}</p>
             </div>
-            <div className="text-sm text-gray-500 whitespace-nowrap">
+            <div className="text-xs md:text-sm text-gray-500 whitespace-nowrap">
               {new Date(item.date).toLocaleDateString()}
             </div>
           </div>
@@ -104,6 +108,7 @@ function AnnouncementList({ announcements }) {
 }
 
 function AnnouncementComposer({ allowPublic, onCreated, defaultRoles }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [date, setDate] = useState('');
@@ -150,10 +155,10 @@ function AnnouncementComposer({ allowPublic, onCreated, defaultRoles }) {
     <form onSubmit={handleSubmit} className="grid gap-4">
       {error ? <div className="rounded-xl bg-red-50 text-red-700 p-3 text-sm">{error}</div> : null}
       <div className="grid md:grid-cols-2 gap-4">
-        <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Announcement title" className="rounded-2xl border border-gs-dark/10 px-4 py-3" required />
-        <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="rounded-2xl border border-gs-dark/10 px-4 py-3" required />
+        <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder={t('announcementTitlePlaceholder')} className="rounded-2xl border border-gs-dark/10 px-4 py-3 text-sm md:text-base" required />
+        <input type="date" value={date} onChange={(event) => setDate(event.target.value)} className="rounded-2xl border border-gs-dark/10 px-4 py-3 text-sm md:text-base" required />
       </div>
-      <textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Write the announcement message" className="rounded-2xl border border-gs-dark/10 px-4 py-3 min-h-28" required />
+      <textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder={t('writeAnnouncementMessage')} className="rounded-2xl border border-gs-dark/10 px-4 py-3 min-h-24 md:min-h-28 text-sm md:text-base" required />
       <div className="flex flex-wrap gap-2">
         {roles.map((role) => (
           <button key={role} type="button" onClick={() => toggleRole(role)} disabled={!allowPublic && role === 'admin'} className={`px-3 py-2 rounded-full text-sm ${targetRoles.includes(role) ? 'bg-gs-accent text-white' : 'bg-[#f7f5f1] text-gs-dark border border-gs-dark/10'} ${!allowPublic && role === 'admin' ? 'opacity-40 cursor-not-allowed' : ''}`}>
@@ -164,19 +169,20 @@ function AnnouncementComposer({ allowPublic, onCreated, defaultRoles }) {
       {allowPublic ? (
         <label className="flex items-center gap-2 text-sm text-gray-600">
           <input type="checkbox" checked={visibleToGuests} onChange={(event) => setVisibleToGuests(event.target.checked)} />
-          Show this announcement to unlogged users too
+          {t('showToUnlogged')}
         </label>
       ) : null}
       <button type="submit" disabled={saving} className="px-5 py-3 rounded-2xl bg-gs-dark text-white font-bold">
-        {saving ? 'Saving...' : 'Post announcement'}
+        {saving ? t('saving') : t('postAnnouncementBtn')}
       </button>
     </form>
   );
 }
 
-function UserRoleManager({ users, onRoleChange }) {
+function UserRoleManager({ users }) {
+  const { t } = useTranslation();
   if (!users.length) {
-    return <EmptyState text="No registered users found." />;
+    return <EmptyState text={t('noUsersFound')} />;
   }
 
   return (
@@ -184,22 +190,22 @@ function UserRoleManager({ users, onRoleChange }) {
       <table className="w-full text-left">
         <thead>
           <tr className="text-sm text-gray-500 border-b border-gs-dark/10">
-            <th className="pb-3">User</th>
-            <th className="pb-3">Email</th>
-            <th className="pb-3">Role</th>
+            <th className="pb-3">{t('user')}</th>
+            <th className="pb-3">Username</th>
+            <th className="pb-3">{t('email')}</th>
+            <th className="pb-3">{t('role')}</th>
           </tr>
         </thead>
         <tbody>
           {users.map((item) => (
             <tr key={item.id} className="border-b border-gs-dark/5">
               <td className="py-4 font-bold text-gs-dark">{item.fullName}</td>
+              <td className="py-4 text-gray-500">{item.username || '-'}</td>
               <td className="py-4 text-gray-500">{item.email}</td>
               <td className="py-4">
-                <select value={item.role} onChange={(event) => onRoleChange(item.id, event.target.value)} className="rounded-full border border-gs-dark/10 px-4 py-2">
-                  {['student', 'teacher', 'parent', 'admin'].map((role) => (
-                    <option key={role} value={role}>{role}</option>
-                  ))}
-                </select>
+                <span className="inline-flex rounded-full border border-gs-dark/10 px-3 md:px-4 py-2 text-sm bg-[#f7f5f1] text-gs-dark">
+                  {t(item.role)}
+                </span>
               </td>
             </tr>
           ))}
@@ -210,41 +216,42 @@ function UserRoleManager({ users, onRoleChange }) {
 }
 
 function TaskCard({ task, comments, canComment, onComment }) {
+  const { t } = useTranslation();
   const [commentText, setCommentText] = useState('');
   const taskComments = comments.filter((item) => (typeof item.task === 'string' ? item.task === task.id : item.task?.id === task.id));
 
   return (
-    <article className="rounded-3xl bg-[#fffaf4] border border-gs-dark/10 p-6">
+    <article className="rounded-3xl bg-[#fffaf4] border border-gs-dark/10 p-4 md:p-6">
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div>
-          <h5 className="font-serif text-2xl text-gs-dark">{task.title}</h5>
-          <p className="text-gray-600 mt-2">{task.description}</p>
-          {task.firstComment ? <div className="mt-4 p-4 rounded-2xl bg-white border border-gs-dark/5"><p className="text-xs uppercase tracking-[0.2em] text-gs-accent font-bold mb-2">First comment</p><p className="text-gray-600">{task.firstComment}</p></div> : null}
-          <div className="text-sm text-gray-500 mt-4">Teacher: {task.teacher?.fullName || 'Unknown'}</div>
+          <h5 className="font-serif text-xl md:text-2xl text-gs-dark">{task.title}</h5>
+          <p className="text-gray-600 mt-2 text-sm md:text-base">{task.description}</p>
+          {task.firstComment ? <div className="mt-4 p-3 md:p-4 rounded-2xl bg-white border border-gs-dark/5"><p className="text-xs uppercase tracking-[0.2em] text-gs-accent font-bold mb-2">{t('firstComment')}</p><p className="text-gray-600 text-sm md:text-base">{task.firstComment}</p></div> : null}
+          <div className="text-sm text-gray-500 mt-4">{t('teacherName')}: {task.teacher?.fullName || 'Unknown'}</div>
         </div>
-        <div className="flex flex-col gap-3 min-w-44">
-          {task.fileUrl ? <a href={buildFileUrl(task.fileUrl)} target="_blank" rel="noreferrer" className="px-4 py-3 rounded-2xl bg-gs-dark text-white text-center font-bold">Download {task.fileName || 'file'}</a> : <div className="px-4 py-3 rounded-2xl bg-white border border-gs-dark/10 text-sm text-gray-500">No file uploaded</div>}
+        <div className="flex flex-col gap-3 min-w-40 md:min-w-44">
+          {task.fileUrl ? <a href={buildFileUrl(task.fileUrl)} target="_blank" rel="noreferrer" className="px-4 py-3 rounded-2xl bg-gs-dark text-white text-center font-bold text-sm md:text-base">{t('downloadFile')} {task.fileName || t('fileName')}</a> : <div className="px-4 py-3 rounded-2xl bg-white border border-gs-dark/10 text-sm text-gray-500">{t('noFileUploaded')}</div>}
           <div className="text-xs text-gray-500">{new Date(task.createdAt).toLocaleString()}</div>
         </div>
       </div>
       <div className="mt-6">
-        <h6 className="font-bold text-gs-dark mb-3">Comments</h6>
+        <h6 className="font-bold text-gs-dark mb-3">{t('comments')}</h6>
         <div className="space-y-3">
           {taskComments.length ? taskComments.map((comment) => (
-            <div key={comment.id} className="rounded-2xl bg-white p-4 border border-gs-dark/5">
+            <div key={comment.id} className="rounded-2xl bg-white p-3 md:p-4 border border-gs-dark/5">
               <div className="flex justify-between gap-3 text-sm">
                 <span className="font-bold text-gs-dark">{comment.author?.fullName} ({comment.author?.role})</span>
-                <span className="text-gray-400">{new Date(comment.createdAt).toLocaleString()}</span>
+                <span className="text-gray-400 text-xs">{new Date(comment.createdAt).toLocaleString()}</span>
               </div>
-              <p className="text-gray-600 mt-2">{comment.text}</p>
+              <p className="text-gray-600 mt-2 text-sm">{comment.text}</p>
             </div>
-          )) : <EmptyState text="No comments yet for this task." />}
+          )) : <EmptyState text={t('noCommentsForTask')} />}
         </div>
       </div>
       {canComment ? (
-        <form onSubmit={(event) => { event.preventDefault(); if (!commentText.trim()) return; onComment(task.id, commentText); setCommentText(''); }} className="mt-6 flex flex-col md:flex-row gap-3">
-          <input value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Write a comment" className="flex-1 rounded-2xl border border-gs-dark/10 px-4 py-3" />
-          <button type="submit" className="px-5 py-3 rounded-2xl bg-gs-accent text-white font-bold">Send comment</button>
+        <form onSubmit={(event) => { event.preventDefault(); if (!commentText.trim()) return; onComment(task.id, commentText); setCommentText(''); }} className="mt-6 flex flex-col md:flex-row gap-2 md:gap-3">
+          <input value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder={t('writeComment')} className="flex-1 rounded-2xl border border-gs-dark/10 px-3 md:px-4 py-2 md:py-3 text-sm md:text-base" />
+          <button type="submit" className="px-4 md:px-5 py-2 md:py-3 rounded-2xl bg-gs-accent text-white font-bold text-sm md:text-base">{t('sendComment')}</button>
         </form>
       ) : null}
     </article>
@@ -252,51 +259,110 @@ function TaskCard({ task, comments, canComment, onComment }) {
 }
 
 function ChatPanel({ title, people, activePersonId, setActivePersonId, messages, onSend }) {
+  const { t } = useTranslation();
   const [messageText, setMessageText] = useState('');
+  const [showSidebar, setShowSidebar] = useState(false);
   const activePerson = people.find((item) => item.user.id === activePersonId) || null;
 
   return (
     <div className="grid lg:grid-cols-[280px_1fr] gap-6">
-      <div className="rounded-3xl bg-[#f7f5f1] p-4 space-y-3">
-        {people.length ? people.map((item) => (
-          <button key={item.user.id} onClick={() => setActivePersonId(item.user.id)} className={`w-full text-left rounded-2xl p-4 ${activePersonId === item.user.id ? 'bg-gs-dark text-white' : 'bg-white text-gs-dark'}`}>
-            <div className="font-bold">{item.user.fullName}</div>
-            <div className={`text-xs mt-1 ${activePersonId === item.user.id ? 'text-white/70' : 'text-gray-500'}`}>{item.lastMessage?.content || 'No messages yet'}</div>
-          </button>
-        )) : <EmptyState text={`No ${title.toLowerCase()} yet.`} />}
+      <div className="lg:rounded-3xl lg:bg-[#f7f5f1] lg:p-4 space-y-3">
+        <button onClick={() => setShowSidebar(!showSidebar)} className="lg:hidden w-full flex items-center justify-between px-4 py-3 bg-gs-dark text-white rounded-xl mb-2">
+          <span className="font-bold">{title}</span>
+          <i className={`fa-solid fa-chevron-${showSidebar ? 'up' : 'down'}`}></i>
+        </button>
+        <div className={`${showSidebar ? 'block' : 'hidden'} lg:block`}>
+          {people.length ? people.map((item) => (
+            <button key={item.user.id} onClick={() => { setActivePersonId(item.user.id); setShowSidebar(false); }} className={`w-full text-left rounded-2xl p-4 ${activePersonId === item.user.id ? 'bg-gs-dark text-white' : 'bg-white text-gs-dark'}`}>
+              <div className="font-bold">{item.user.fullName}</div>
+              <div className={`text-xs mt-1 truncate ${activePersonId === item.user.id ? 'text-white/70' : 'text-gray-500'}`}>{item.lastMessage?.content || t('noMessagesYet')}</div>
+            </button>
+          )) : <EmptyState text={`${t('noMessagesYet')} ${title.toLowerCase()}.`} />}
+        </div>
       </div>
-      <div className="rounded-3xl bg-white border border-gs-dark/10 p-5">
+      <div className="rounded-3xl bg-white border border-gs-dark/10 p-3 sm:p-5">
         {activePerson ? (
           <>
-            <div className="border-b border-gs-dark/10 pb-4 mb-4">
-              <h5 className="font-serif text-2xl text-gs-dark">{activePerson.user.fullName}</h5>
-              <p className="text-sm text-gray-500">{activePerson.user.email}</p>
+            <div className="border-b border-gs-dark/10 pb-3 mb-4 flex sm:block items-center justify-between">
+              <button onClick={() => setShowSidebar(true)} className="lg:hidden text-gs-dark text-sm">
+                <i className="fa-solid fa-arrow-left mr-1"></i>
+              </button>
+              <div>
+                <h5 className="font-serif text-xl sm:text-2xl text-gs-dark">{activePerson.user.fullName}</h5>
+                <p className="text-xs sm:text-sm text-gray-500">{activePerson.user.email}</p>
+              </div>
             </div>
-            <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-[300px] sm:max-h-[420px] overflow-y-auto pr-2">
               {messages.length ? messages.map((message) => {
                 const ownMessage = message.sender?.id === getStoredUser()?.id;
-                return <div key={message.id} className={`max-w-[80%] rounded-3xl px-4 py-3 ${ownMessage ? 'ml-auto bg-gs-dark text-white' : 'bg-[#f7f5f1] text-gs-dark'}`}><div className="text-xs opacity-70 mb-1">{message.sender?.fullName}</div><div>{message.content}</div></div>;
-              }) : <EmptyState text="No messages in this conversation yet." />}
+                return (
+                  <div key={message.id} className={`max-w-[85%] sm:max-w-[80%] rounded-2xl sm:rounded-3xl px-3 sm:px-4 py-2 sm:py-3 ${ownMessage ? 'ml-auto bg-gs-dark text-white' : 'bg-[#f7f5f1] text-gs-dark'}`}>
+                    <div className="text-xs opacity-70 mb-1 hidden sm:block">{message.sender?.fullName}</div>
+                    <div className="text-sm sm:text-base">{message.content}</div>
+                  </div>
+                );
+              }) : <EmptyState text={t('noMessagesInConversation')} />}
             </div>
-            <form onSubmit={(event) => { event.preventDefault(); if (!messageText.trim()) return; onSend(activePerson.user.id, messageText); setMessageText(''); }} className="mt-5 flex gap-3">
-              <input value={messageText} onChange={(event) => setMessageText(event.target.value)} placeholder="Write a message" className="flex-1 rounded-2xl border border-gs-dark/10 px-4 py-3" />
-              <button type="submit" className="px-5 py-3 rounded-2xl bg-gs-accent text-white font-bold">Send</button>
+            <form onSubmit={async (event) => { event.preventDefault(); if (!messageText.trim()) return; const text = messageText; setMessageText(''); await onSend(activePerson.user.id, text); }} className="mt-4 flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <input value={messageText} onChange={(event) => setMessageText(event.target.value)} placeholder={t('writeMessage')} className="flex-1 rounded-2xl border border-gs-dark/10 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base" />
+              <button type="submit" className="px-4 sm:px-5 py-2 sm:py-3 rounded-2xl bg-gs-accent text-white font-bold text-sm sm:text-base">{t('send')}</button>
             </form>
           </>
-        ) : <EmptyState text="Choose a person to open the conversation." />}
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-gray-500 text-sm sm:text-base">{t('choosePersonConversation')}</p>
+            <button onClick={() => setShowSidebar(true)} className="lg:hidden mt-2 text-gs-accent text-sm">{t('viewContacts')}</button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
+function upsertConversation(current, message, fallbackUser = null) {
+  const otherUser =
+    fallbackUser ||
+    (message.sender?.id === getStoredUser()?.id ? message.recipient : message.sender);
+
+  if (!otherUser?.id) {
+    return current;
+  }
+
+  const existing = current.find((conversation) => conversation.user.id === otherUser.id);
+
+  if (!existing) {
+    return [
+      {
+        user: otherUser,
+        lastMessage: message,
+        messages: [message],
+      },
+      ...current,
+    ];
+  }
+
+  return current.map((conversation) => {
+    if (conversation.user.id !== otherUser.id) {
+      return conversation;
+    }
+
+    return {
+      ...conversation,
+      lastMessage: message,
+      messages: [...conversation.messages.filter((item) => item.id !== message.id), message],
+    };
+  });
+}
+
 function RoleAnnouncements({ announcements, canPost, allowPublic, onCreated, defaultRoles }) {
+  const { t } = useTranslation();
   return (
-    <div className="grid xl:grid-cols-[1fr_360px] gap-6">
-      <Panel title="Announcements" subtitle="Visible updates for this role dashboard.">
+    <div className="grid xl:grid-cols-[1fr_360px] gap-4 xl:gap-6">
+      <Panel title={t('announcements')} subtitle={t('parentAnnouncementsSubtitle')}>
         <AnnouncementList announcements={announcements} />
       </Panel>
       {canPost ? (
-        <Panel title="Post announcement" subtitle="Choose the audience carefully.">
+        <Panel title={t('postAnnouncement')} subtitle={t('chooseAudience')}>
           <AnnouncementComposer allowPublic={allowPublic} onCreated={onCreated} defaultRoles={defaultRoles} />
         </Panel>
       ) : null}
@@ -305,6 +371,7 @@ function RoleAnnouncements({ announcements, canPost, allowPublic, onCreated, def
 }
 
 function AdminDashboard({ user, onLogout }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('overview');
   const [announcements, setAnnouncements] = useState([]);
   const [users, setUsers] = useState([]);
@@ -359,31 +426,37 @@ function AdminDashboard({ user, onLogout }) {
     students: users.filter((item) => item.role === 'student').length,
   }), [users]);
 
-  const handleRoleChange = async (userId, role) => {
-    const data = await apiRequest(`/users/${userId}/role`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) });
-    setUsers((current) => current.map((item) => (item.id === userId ? data.user : item)));
-  };
-
   const handleSendMessage = async (recipientId, content) => {
-    await apiJson('/chat/messages', 'POST', { recipientId, content });
+    const data = await apiJson('/chat/messages', 'POST', { recipientId, content });
+    const activeTeacher = teacherConversations.find((item) => item.user.id === recipientId)?.user || null;
+    const activeParent = parentConversations.find((item) => item.user.id === recipientId)?.user || null;
+
+    if (data.message.audience === 'teacher') {
+      setTeacherConversations((current) => upsertConversation(current, data.message, activeTeacher));
+    }
+
+    if (data.message.audience === 'parent') {
+      setParentConversations((current) => upsertConversation(current, data.message, activeParent));
+    }
   };
 
   return (
-    <DashboardShell user={user} onLogout={onLogout} title="Admin Control Room" subtitle="Manage roles, announcements, teacher comments, and live conversations." accentClass="bg-gs-dark">
+    <DashboardShell user={user} onLogout={onLogout} title={t('adminControlRoom')} subtitle={t('adminSubtitle')} accentClass="bg-gs-dark">
       <div className="flex flex-wrap gap-2 mb-6">
-        {['overview', 'announcements', 'users', 'comments', 'chatFromTeacher', 'chatFromParent'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{tab}</TabButton>)}
+        {['overview', 'announcements', 'users', 'comments', 'chatFromTeacher', 'chatFromParent'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}
       </div>
-      {activeTab === 'overview' ? <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">{[['Total users', stats.totalUsers], ['Teachers', stats.teachers], ['Parents', stats.parents], ['Students', stats.students]].map(([label, value]) => <div key={label} className="rounded-3xl p-6 bg-white border border-gs-dark/5"><p className="text-sm text-gray-500">{label}</p><p className="text-4xl font-serif text-gs-dark mt-3">{value}</p></div>)}</div> : null}
+      {activeTab === 'overview' ? <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">{[[t('totalUsers'), stats.totalUsers], [t('teachers'), stats.teachers], [t('parents'), stats.parents], [t('student'), stats.students]].map(([label, value]) => <div key={label} className="rounded-3xl p-6 bg-white border border-gs-dark/5"><p className="text-sm text-gray-500">{label}</p><p className="text-4xl font-serif text-gs-dark mt-3">{value}</p></div>)}</div> : null}
       {activeTab === 'announcements' ? <RoleAnnouncements announcements={announcements} canPost allowPublic onCreated={(announcement) => setAnnouncements((current) => [announcement, ...current])} defaultRoles={['teacher', 'student', 'parent', 'admin']} /> : null}
-      {activeTab === 'users' ? <Panel title="User management" subtitle="Change the selected role for any registered user."><UserRoleManager users={users} onRoleChange={handleRoleChange} /></Panel> : null}
-      {activeTab === 'comments' ? <Panel title="Teacher comments feed" subtitle="Real-time task comments arriving from the learning area."><div className="space-y-3">{teacherComments.length ? teacherComments.map((item) => <div key={item.id} className="rounded-2xl bg-[#fffaf4] border border-gs-dark/10 p-4"><div className="flex justify-between gap-4"><div><p className="font-bold text-gs-dark">{item.author?.fullName} ({item.author?.role})</p><p className="text-sm text-gray-500 mt-1">Task: {typeof item.task === 'string' ? item.task : item.task?.title}</p></div><span className="text-xs text-gray-400">{new Date(item.createdAt).toLocaleString()}</span></div><p className="text-gray-600 mt-3">{item.text}</p></div>) : <EmptyState text="No teacher or student task comments yet." />}</div></Panel> : null}
-      {activeTab === 'chatFromTeacher' ? <Panel title="chatFromTeacher" subtitle="See which teacher sent the message, then reply in real time."><ChatPanel title="Teachers" people={teacherConversations} activePersonId={activeTeacherId} setActivePersonId={setActiveTeacherId} messages={teacherConversations.find((item) => item.user.id === activeTeacherId)?.messages || []} onSend={handleSendMessage} /></Panel> : null}
-      {activeTab === 'chatFromParent' ? <Panel title="chatFromParent" subtitle="Live parent conversations for the school leader."><ChatPanel title="Parents" people={parentConversations} activePersonId={activeParentId} setActivePersonId={setActiveParentId} messages={parentConversations.find((item) => item.user.id === activeParentId)?.messages || []} onSend={handleSendMessage} /></Panel> : null}
+      {activeTab === 'users' ? <Panel title={t('userManagement')} subtitle={t('userManagement')}><UserRoleManager users={users} /></Panel> : null}
+      {activeTab === 'comments' ? <Panel title={t('teacherComments')} subtitle={t('teacherCommentsSubtitle')}><div className="space-y-3">{teacherComments.length ? teacherComments.map((item) => <div key={item.id} className="rounded-2xl bg-[#fffaf4] border border-gs-dark/10 p-4"><div className="flex justify-between gap-4"><div><p className="font-bold text-gs-dark">{item.author?.fullName} ({item.author?.role})</p><p className="text-sm text-gray-500 mt-1">{t('task')}: {typeof item.task === 'string' ? item.task : item.task?.title}</p></div><span className="text-xs text-gray-400">{new Date(item.createdAt).toLocaleString()}</span></div><p className="text-gray-600 mt-3">{item.text}</p></div>) : <EmptyState text={t('noTeacherComments')} />}</div></Panel> : null}
+      {activeTab === 'chatFromTeacher' ? <Panel title={t('chatFromTeacher')} subtitle={t('seeWhichTeacher')}><ChatPanel title={t('teachers')} people={teacherConversations} activePersonId={activeTeacherId} setActivePersonId={setActiveTeacherId} messages={teacherConversations.find((item) => item.user.id === activeTeacherId)?.messages || []} onSend={handleSendMessage} /></Panel> : null}
+      {activeTab === 'chatFromParent' ? <Panel title={t('chatFromParent')} subtitle={t('liveParentConversations')}><ChatPanel title={t('parents')} people={parentConversations} activePersonId={activeParentId} setActivePersonId={setActiveParentId} messages={parentConversations.find((item) => item.user.id === activeParentId)?.messages || []} onSend={handleSendMessage} /></Panel> : null}
     </DashboardShell>
   );
 }
 
 function TeacherDashboard({ user, onLogout }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('tasks');
   const [tasks, setTasks] = useState([]);
   const [comments, setComments] = useState([]);
@@ -413,7 +486,11 @@ function TeacherDashboard({ user, onLogout }) {
       }
     };
     const onComment = (comment) => setComments((current) => [...current.filter((item) => item.id !== comment.id), comment]);
-    const onChat = (message) => { if (message.audience === 'teacher') setChatMessages((current) => [...current.filter((item) => item.id !== message.id), message]); };
+    const onChat = (message) => {
+      if (message.audience === 'teacher') {
+        setChatMessages((current) => [...current.filter((item) => item.id !== message.id), message]);
+      }
+    };
     socket.on('announcement:created', onAnnouncement);
     socket.on('task:comment-created', onComment);
     socket.on('chat:message', onChat);
@@ -438,16 +515,17 @@ function TeacherDashboard({ user, onLogout }) {
   };
 
   return (
-    <DashboardShell user={user} onLogout={onLogout} title="Teacher Workspace" subtitle="Upload task files, receive student comments, read announcements, and chat with admin." accentClass="bg-[linear-gradient(135deg,#1A3C34,#2d5b50)]">
-      <div className="flex flex-wrap gap-2 mb-6">{['tasks', 'announcements', 'chat'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{tab}</TabButton>)}</div>
-      {activeTab === 'tasks' ? <div className="grid xl:grid-cols-[380px_1fr] gap-6"><Panel title="Upload task" subtitle="Add task details, upload a task file, and write the first comment students will see."><form onSubmit={handleTaskSubmit} className="grid gap-4"><input value={taskForm.title} onChange={(event) => setTaskForm((current) => ({ ...current, title: event.target.value }))} placeholder="Task title" className="rounded-2xl border border-gs-dark/10 px-4 py-3" required /><textarea value={taskForm.description} onChange={(event) => setTaskForm((current) => ({ ...current, description: event.target.value }))} placeholder="Task description" className="rounded-2xl border border-gs-dark/10 px-4 py-3 min-h-28" required /><textarea value={taskForm.firstComment} onChange={(event) => setTaskForm((current) => ({ ...current, firstComment: event.target.value }))} placeholder="First comment for students" className="rounded-2xl border border-gs-dark/10 px-4 py-3 min-h-24" /><input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.png,.jpg,.jpeg" onChange={(event) => setTaskForm((current) => ({ ...current, file: event.target.files?.[0] || null }))} className="rounded-2xl border border-gs-dark/10 px-4 py-3" /><div className="text-sm text-gray-500">Teachers can upload the task file here. Students will be able to open or download it from their dashboard.</div><button type="submit" className="px-5 py-3 rounded-2xl bg-gs-accent text-white font-bold">Upload task</button></form></Panel><Panel title="Uploaded tasks" subtitle="Only students and this teacher can access these tasks."><div className="space-y-6">{tasks.length ? tasks.map((task) => <TaskCard key={task.id} task={task} comments={comments} canComment onComment={handleTaskComment} />) : <EmptyState text="No tasks uploaded yet." />}</div></Panel></div> : null}
+    <DashboardShell user={user} onLogout={onLogout} title={t('teacherWorkspace')} subtitle={t('teacherSubtitle')} accentClass="bg-[linear-gradient(135deg,#1A3C34,#2d5b50)]">
+      <div className="flex flex-wrap gap-2 mb-6">{['tasks', 'announcements', 'chat'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}</div>
+      {activeTab === 'tasks' ? <div className="grid xl:grid-cols-[380px_1fr] gap-6"><Panel title={t('uploadTask')} subtitle={t('uploadTaskFile')}><form onSubmit={handleTaskSubmit} className="grid gap-4"><input value={taskForm.title} onChange={(event) => setTaskForm((current) => ({ ...current, title: event.target.value }))} placeholder={t('taskTitle')} className="rounded-2xl border border-gs-dark/10 px-4 py-3" required /><textarea value={taskForm.description} onChange={(event) => setTaskForm((current) => ({ ...current, description: event.target.value }))} placeholder={t('taskDescription')} className="rounded-2xl border border-gs-dark/10 px-4 py-3 min-h-28" required /><textarea value={taskForm.firstComment} onChange={(event) => setTaskForm((current) => ({ ...current, firstComment: event.target.value }))} placeholder={t('firstCommentForStudents')} className="rounded-2xl border border-gs-dark/10 px-4 py-3 min-h-24" /><input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.png,.jpg,.jpeg" onChange={(event) => setTaskForm((current) => ({ ...current, file: event.target.files?.[0] || null }))} className="rounded-2xl border border-gs-dark/10 px-4 py-3" /><div className="text-sm text-gray-500">{t('teachersCanUpload')}</div><button type="submit" className="px-5 py-3 rounded-2xl bg-gs-accent text-white font-bold">{t('uploadTask')}</button></form></Panel><Panel title={t('uploadedTasks')} subtitle={t('uploadedTasksSubtitle')}><div className="space-y-6">{tasks.length ? tasks.map((task) => <TaskCard key={task.id} task={task} comments={comments} canComment onComment={handleTaskComment} />) : <EmptyState text={t('noTasksYet')} />}</div></Panel></div> : null}
       {activeTab === 'announcements' ? <RoleAnnouncements announcements={announcements} canPost allowPublic={false} onCreated={(announcement) => setAnnouncements((current) => [announcement, ...current])} defaultRoles={['student', 'parent', 'teacher']} /> : null}
-      {activeTab === 'chat' ? <Panel title="Admin chat" subtitle="Real-time communication with the school leader."><ChatPanel title="Admin" people={adminUser ? [{ user: adminUser, messages: chatMessages, lastMessage: chatMessages.at(-1) || null }] : []} activePersonId={adminUser?.id || ''} setActivePersonId={() => {}} messages={chatMessages} onSend={async (_, content) => { await apiJson('/chat/messages', 'POST', { content }); }} /></Panel> : null}
+      {activeTab === 'chat' ? <Panel title={t('talkToAdmin')} subtitle={t('parentChatSubtitle')}><ChatPanel title="Admin" people={adminUser ? [{ user: adminUser, messages: chatMessages, lastMessage: chatMessages.at(-1) || null }] : []} activePersonId={adminUser?.id || ''} setActivePersonId={() => {}} messages={chatMessages} onSend={async (_, content) => { const data = await apiJson('/chat/messages', 'POST', { content }); setChatMessages((current) => [...current.filter((item) => item.id !== data.message.id), data.message]); }} /></Panel> : null}
     </DashboardShell>
   );
 }
 
 function StudentDashboard({ user, onLogout }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('tasks');
   const [tasks, setTasks] = useState([]);
   const [comments, setComments] = useState([]);
@@ -482,15 +560,16 @@ function StudentDashboard({ user, onLogout }) {
   };
 
   return (
-    <DashboardShell user={user} onLogout={onLogout} title="Student Dashboard" subtitle="Download teacher tasks, add comments, and keep up with announcements." accentClass="bg-[linear-gradient(135deg,#C07756,#de9a7c)]">
-      <div className="flex flex-wrap gap-2 mb-6">{['tasks', 'announcements'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{tab}</TabButton>)}</div>
-      {activeTab === 'tasks' ? <Panel title="Teacher tasks" subtitle="These files are visible only to students and the posting teacher."><div className="space-y-6">{tasks.length ? tasks.map((task) => <TaskCard key={task.id} task={task} comments={comments} canComment onComment={handleTaskComment} />) : <EmptyState text="No teacher tasks available yet." />}</div></Panel> : null}
-      {activeTab === 'announcements' ? <Panel title="Announcements" subtitle="School updates from admin and teachers."><AnnouncementList announcements={announcements.filter((item) => item.visibleToGuests || item.targetRoles.includes('student'))} /></Panel> : null}
+    <DashboardShell user={user} onLogout={onLogout} title={t('studentDashboard')} subtitle={t('studentSubtitle')} accentClass="bg-[linear-gradient(135deg,#C07756,#de9a7c)]">
+      <div className="flex flex-wrap gap-2 mb-6">{['tasks', 'announcements'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}</div>
+      {activeTab === 'tasks' ? <Panel title={t('teacherTasks')} subtitle={t('teacherTasksSubtitle')}><div className="space-y-6">{tasks.length ? tasks.map((task) => <TaskCard key={task.id} task={task} comments={comments} canComment onComment={handleTaskComment} />) : <EmptyState text={t('noTeacherTasks')} />}</div></Panel> : null}
+      {activeTab === 'announcements' ? <Panel title={t('announcements')} subtitle={t('parentAnnouncementsSubtitle')}><AnnouncementList announcements={announcements.filter((item) => item.visibleToGuests || item.targetRoles.includes('student'))} /></Panel> : null}
     </DashboardShell>
   );
 }
 
 function ParentDashboard({ user, onLogout }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('announcements');
   const [announcements, setAnnouncements] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
@@ -519,10 +598,10 @@ function ParentDashboard({ user, onLogout }) {
   }, []);
 
   return (
-    <DashboardShell user={user} onLogout={onLogout} title="Parent Dashboard" subtitle="Read announcements from admin or teachers and communicate with the school leader." accentClass="bg-[linear-gradient(135deg,#8f5e42,#C07756)]">
-      <div className="flex flex-wrap gap-2 mb-6">{['announcements', 'chat'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{tab}</TabButton>)}</div>
-      {activeTab === 'announcements' ? <Panel title="Announcements" subtitle="Updates shared by admin and teachers."><AnnouncementList announcements={announcements.filter((item) => item.visibleToGuests || item.targetRoles.includes('parent'))} /></Panel> : null}
-      {activeTab === 'chat' ? <Panel title="Talk to admin" subtitle="This chat is live with Socket.IO."><ChatPanel title="Admin" people={adminUser ? [{ user: adminUser, messages: chatMessages, lastMessage: chatMessages.at(-1) || null }] : []} activePersonId={adminUser?.id || ''} setActivePersonId={() => {}} messages={chatMessages} onSend={async (_, content) => { await apiJson('/chat/messages', 'POST', { content }); }} /></Panel> : null}
+    <DashboardShell user={user} onLogout={onLogout} title={t('parentDashboard')} subtitle={t('parentDashboardSubtitle')} accentClass="bg-[linear-gradient(135deg,#8f5e42,#C07756)]">
+      <div className="flex flex-wrap gap-2 mb-6">{['announcements', 'chat'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}</div>
+      {activeTab === 'announcements' ? <Panel title={t('parentAnnouncementsTitle')} subtitle={t('parentAnnouncementsSubtitle')}><AnnouncementList announcements={announcements.filter((item) => item.visibleToGuests || item.targetRoles.includes('parent'))} /></Panel> : null}
+      {activeTab === 'chat' ? <Panel title={t('talkToAdmin')} subtitle={t('parentChatSubtitle')}><ChatPanel title="Admin" people={adminUser ? [{ user: adminUser, messages: chatMessages, lastMessage: chatMessages.at(-1) || null }] : []} activePersonId={adminUser?.id || ''} setActivePersonId={() => {}} messages={chatMessages} onSend={async (_, content) => { const data = await apiJson('/chat/messages', 'POST', { content }); setChatMessages((current) => [...current.filter((item) => item.id !== data.message.id), data.message]); }} /></Panel> : null}
     </DashboardShell>
   );
 }

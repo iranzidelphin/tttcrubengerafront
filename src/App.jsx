@@ -4,9 +4,39 @@ import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './Components/LanguageSwitcher';
 import { AnnouncementsPageContent, PublicAnnouncementsPreview } from './Features/PublicAnnouncements';
 import { RolePortal } from './Features/PortalExperience';
-import { apiJson, clearAuthSession, getDashboardRoute, getStoredUser, saveAuthSession } from './lib/api';
+import { API_BASE_URL, apiJson, clearAuthSession, getDashboardRoute, getStoredUser, saveAuthSession } from './lib/api';
 import { disconnectSocket } from './lib/socket';
 import './App.css';
+
+const BACKEND_KEEP_ALIVE_MS = 9 * 60 * 1000;
+
+function useBackendKeepAlive() {
+  useEffect(() => {
+    const pingBackend = () => {
+      fetch(`${API_BASE_URL}/health`, {
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-store',
+      }).catch(() => {});
+    };
+
+    pingBackend();
+    const intervalId = window.setInterval(pingBackend, BACKEND_KEEP_ALIVE_MS);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        pingBackend();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+}
 
 // ===================== COMPONENTS =====================
 
@@ -500,6 +530,11 @@ function LoginPage() {
             <button type="submit" disabled={loading} className="w-full py-3 bg-gs-accent text-white font-bold rounded hover:bg-orange-700 transition-colors disabled:opacity-50">
               {loading ? t('signingIn') : t('signIn')}
             </button>
+            {loading ? (
+              <div className="rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm">
+                {t('wakingUpServer')}
+              </div>
+            ) : null}
           </form>
           <div className="mt-4 rounded-xl bg-[#fffaf4] border border-gs-dark/10 p-4 text-sm text-gray-600">
             Sign in with the same account you registered. You will be sent to your dashboard automatically based on your saved role.
@@ -543,6 +578,7 @@ function RegisterPage() {
       const lastName = nameParts.slice(1).join(' ') || '';
 
       const data = await apiJson('/auth/register', 'POST', {
+        username,
         email,
         password,
         role,
@@ -583,7 +619,7 @@ function RegisterPage() {
           <div className="mb-6">
             <label className="block text-sm font-bold text-gs-dark mb-2">{t('iAmA')}</label>
             <div className="grid grid-cols-2 gap-2">
-              {['student', 'teacher', 'parent', 'admin'].map((r) => (
+              {['student', 'teacher', 'parent'].map((r) => (
                 <button key={r} type="button" onClick={() => setRole(r)} className={`py-2 px-3 rounded text-sm font-bold capitalize transition-all ${role === r ? 'bg-gs-accent text-white' : 'bg-gray-100 text-gs-dark hover:bg-gray-200'}`}>
                   {t(r)}
                 </button>
@@ -600,8 +636,8 @@ function RegisterPage() {
               <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-gs-accent" placeholder={t('enterUsername')} required />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gs-dark mb-1">{t('email')}</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-gs-accent" placeholder="your@email.com" required />
+              <label className="block text-sm font-bold text-gs-dark mb-1">Email or username</label>
+              <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-gs-accent" placeholder="your@email.com or ttcradmin" required />
             </div>
             <div>
               <label className="block text-sm font-bold text-gs-dark mb-1">{t('password')}</label>
@@ -611,6 +647,11 @@ function RegisterPage() {
             <button type="submit" disabled={loading} className="w-full py-3 bg-gs-accent text-white font-bold rounded hover:bg-orange-700 transition-colors disabled:opacity-50">
               {loading ? t('creatingAccount') : t('createAccount')}
             </button>
+            {loading ? (
+              <div className="rounded-xl bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 text-sm">
+                {t('wakingUpServer')}
+              </div>
+            ) : null}
           </form>
           <p className="text-center text-sm text-gray-500 mt-4">{t('alreadyHaveAccount')} <Link to="/login" className="text-gs-accent font-bold">{t('signIn')}</Link></p>
           <div className="text-center mt-6">
@@ -799,6 +840,8 @@ function PortalRedirect() {
 
 // ===================== MAIN APP =====================
 function App() {
+  useBackendKeepAlive();
+
   return (
     <Router>
       <Routes>
