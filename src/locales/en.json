@@ -284,10 +284,17 @@
   "fileName": "file",
   "createdAt": "Created at",
   "noMessagesInConversation": "No messages in this conversation yet.",
-  "choosePersonConversation": "Choose a person to open the conversation.",
+"choosePersonConversation": "Choose a person to open the conversation.",
   "viewContacts": "View contacts",
-  "wakingUpServer": "Waking up server. This may take a few seconds on first request.",
-  "announcementNotificationTag": "New announcement",
-  "commentNotificationTag": "New comment",
-  "newComment": "New comment"
+  "pushNotifications": "Push Notifications",
+  "pushNotificationsDesc": "Get real-time notifications on your device",
+  "pushNotSupported": "Push notifications are not supported in this browser",
+  "notificationsBlocked": "Notifications are blocked. Please enable them in browser settings.",
+  "enableNotifications": "Enable Notifications",
+  "disableNotifications": "Disable Notifications",
+  "notificationsEnabled": "Notifications enabled successfully!",
+  "notificationsDisabled": "Notifications disabled.",
+  "notificationError": "Failed to update notifications",
+  "enabled": "Enabled",
+  "settings": "Settings"
 }

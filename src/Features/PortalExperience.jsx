@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { apiJson, apiRequest, buildFileUrl, getStoredUser } from '../lib/api';
 import { getSocket } from '../lib/socket';
+import PushNotificationManager from '../Components/PushNotifications';
 
 function DashboardShell({ user, onLogout, title, subtitle, accentClass = 'bg-gs-dark', children }) {
   const { t } = useTranslation();
@@ -746,9 +747,10 @@ function ParentDashboard({ user, onLogout }) {
     <>
     <NotificationStack notifications={notifications} onDismiss={dismissNotification} />
     <DashboardShell user={user} onLogout={onLogout} title={t('parentDashboard')} subtitle={t('parentDashboardSubtitle')} accentClass="bg-[linear-gradient(135deg,#8f5e42,#C07756)]">
-      <div className="flex flex-wrap gap-2 mb-6">{['announcements', 'chat'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}</div>
+      <div className="flex flex-wrap gap-2 mb-6">{['announcements', 'chat', 'settings'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{tab === 'settings' ? t('settings') : t(tab)}</TabButton>)}</div>
       {activeTab === 'announcements' ? <Panel title={t('parentAnnouncementsTitle')} subtitle={t('parentAnnouncementsSubtitle')}><AnnouncementList announcements={announcements.filter((item) => item.visibleToGuests || item.targetRoles.includes('parent'))} /></Panel> : null}
       {activeTab === 'chat' ? <Panel title={t('talkToAdmin')} subtitle={t('parentChatSubtitle')}><ChatPanel title="Admin" people={adminUser ? [{ user: adminUser, messages: chatMessages, lastMessage: chatMessages.at(-1) || null }] : []} activePersonId={adminUser?.id || ''} setActivePersonId={() => {}} messages={chatMessages} onSend={async (_, content) => { const data = await apiJson('/chat/messages', 'POST', { content }); setChatMessages((current) => [...current.filter((item) => item.id !== data.message.id), data.message]); }} /></Panel> : null}
+      {activeTab === 'settings' ? <Panel title={t('settings')} subtitle={t('pushNotificationsDesc')}><PushNotificationManager user={user} /></Panel> : null}
     </DashboardShell>
     </>
   );
