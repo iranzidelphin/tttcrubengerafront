@@ -70,7 +70,7 @@ function Navbar() {
             <Link to="/about" className="text-white hover:text-gs-accent transition-colors text-sm">{t('aboutUs')}</Link>
             <Link to="/programs" className="text-white hover:text-gs-accent transition-colors text-sm">{t('programs')}</Link>
             <Link to="/announcements" className="text-white hover:text-gs-accent transition-colors text-sm">{t('news')}</Link>
-            <Link to="/apply" className="px-4 py-2 border border-white hover:bg-white hover:text-gs-dark transition-colors rounded text-sm">{t('applyOnline')}</Link>
+            <Link to="/apply" className="px-4 py-2 border border-white hover:bg-white hover:text-gs-dark transition-colors rounded text-sm text-white">{t('applyOnline')}</Link>
             <Link to="/login" className="px-6 py-2 bg-gs-accent hover:bg-orange-700 text-white rounded-full transition-all transform hover:scale-105 shadow-lg text-sm">{t('login')}</Link>
           </div>
         </div>
@@ -227,7 +227,7 @@ function AboutPreview() {
             <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Students Learning" className="relative rounded-xl shadow-2xl w-full object-cover h-[500px] grayscale group-hover:grayscale-0 transition-all duration-500" />
             <div className="absolute -bottom-6 -right-6 bg-white p-6 rounded-lg shadow-xl max-w-xs hidden md:block">
               <div className="flex items-center gap-4">
-                <div className="text-4xl text-gs-accent font-serif font-bold">25+</div>
+                <div className="text-4xl text-gs-accent font-serif font-bold">34+</div>
                 <div className="text-sm text-gray-600 leading-tight">{t('yearsExperience')}</div>
               </div>
             </div>
@@ -543,7 +543,7 @@ function LoginPage() {
             ) : null}
           </form>
           <div className="mt-4 rounded-xl bg-[#fffaf4] border border-gs-dark/10 p-4 text-sm text-gray-600">
-            Sign in with the same account you registered. You will be sent to your dashboard automatically based on your saved role.
+            {t('loginHelpText')}
           </div>
           <p className="text-center text-sm text-gray-500 mt-4">{t('dontHaveAccount')} <Link to="/register" className="text-gs-accent font-bold">{t('registerHere')}</Link></p>
           <div className="text-center mt-6">

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { apiRequest } from '../lib/api';
 
 function AnnouncementCard({ item, compact = false }) {
@@ -27,6 +28,7 @@ function AnnouncementCard({ item, compact = false }) {
 }
 
 export function PublicAnnouncementsPreview() {
+  const { t } = useTranslation();
   const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
@@ -44,11 +46,11 @@ export function PublicAnnouncementsPreview() {
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex justify-between items-end mb-12 border-b border-gray-300 pb-4">
           <div>
-            <h3 className="text-gs-accent font-bold uppercase tracking-wider mb-1">Stay Updated</h3>
-            <h2 className="font-serif text-4xl text-gs-dark">Latest Announcements</h2>
+            <h3 className="text-gs-accent font-bold uppercase tracking-wider mb-1">{t('stayUpdated')}</h3>
+            <h2 className="font-serif text-4xl text-gs-dark">{t('latestAnnouncements')}</h2>
           </div>
           <Link to="/announcements" className="text-gs-accent font-bold hover:underline">
-            View all
+            {t('viewAll')}
           </Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

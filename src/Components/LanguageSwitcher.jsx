@@ -23,7 +23,7 @@ function LanguageSwitcher() {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1 rounded-full border border-white/30 hover:bg-white/10 transition-colors text-sm"
+        className="text-white flex items-center gap-2 px-3 py-1 rounded-full border border-white/30 hover:bg-white/10 transition-colors text-sm"
       >
         <span className="text-xs font-bold">{currentLang.label}</span>
         <span className="hidden md:inline">{currentLang.name}</span>
