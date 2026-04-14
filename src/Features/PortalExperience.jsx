@@ -299,23 +299,6 @@ function AnnouncementComposer({ allowPublic, onCreated, defaultRoles }) {
 
 function UserRoleManager({ users }) {
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(null);
-
-  const handleDelete = async (userId, userName) => {
-    if (!window.confirm(`Are you sure you want to delete ${userName} and all their data?`)) {
-      return;
-    }
-    setLoading(userId);
-    try {
-      await apiJson(`/users/${userId}`, 'DELETE');
-      window.location.reload();
-    } catch (error) {
-      alert(error.message || 'Failed to delete user');
-    } finally {
-      setLoading(null);
-    }
-  };
-
   if (!users.length) {
     return <EmptyState text={t('noUsersFound')} />;
   }
@@ -329,7 +312,6 @@ function UserRoleManager({ users }) {
             <th className="pb-3">Username</th>
             <th className="pb-3">{t('email')}</th>
             <th className="pb-3">{t('role')}</th>
-            <th className="pb-3"></th>
           </tr>
         </thead>
         <tbody>
@@ -342,16 +324,6 @@ function UserRoleManager({ users }) {
                 <span className="inline-flex rounded-full border border-gs-dark/10 px-3 md:px-4 py-2 text-sm bg-[#f7f5f1] text-gs-dark">
                   {t(item.role)}
                 </span>
-              </td>
-              <td className="py-4">
-                <button
-                  type="button"
-                  onClick={() => handleDelete(item.id, item.fullName)}
-                  disabled={loading === item.id}
-                  className="px-3 py-2 rounded-full text-sm bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                >
-                  {loading === item.id ? '...' : t('delete')}
-                </button>
               </td>
             </tr>
           ))}
