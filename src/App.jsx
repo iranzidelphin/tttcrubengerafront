@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './Components/LanguageSwitcher';
 import { AnnouncementsPageContent, PublicAnnouncementsPreview } from './Features/PublicAnnouncements';
 import { RolePortal } from './Features/PortalExperience';
-import { API_BASE_URL, apiJson, clearAuthSession, getDashboardRoute, getStoredUser, saveAuthSession } from './lib/api';
+import { API_BASE_URL, apiJson, apiRequest, clearAuthSession, getDashboardRoute, getStoredUser, saveAuthSession } from './lib/api';
 import { disconnectSocket } from './lib/socket';
 import './App.css';
 
@@ -678,11 +678,39 @@ function RegisterPage() {
 // Apply Page
 function ApplyPage() {
   const { t } = useTranslation();
+  const [form, setForm] = useState({
+    sdmsCode: '',
+    firstName: '',
+    lastName: '',
+    lastLevelMark: '',
+    tradeOrSection: '',
+    model: '',
+    gender: '',
+    level: '',
+    fatherName: '',
+    motherName: '',
+    phone: '',
+    dateOfBirth: '',
+    studentEmail: '',
+    reasonToApply: '',
+  });
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
+    setSubmitting(true);
+    setError('');
+
+    try {
+      await apiJson('/applications', 'POST', form);
+      setSubmitted(true);
+    } catch (submitError) {
+      setError(submitError.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -711,27 +739,28 @@ function ApplyPage() {
         <h1 className="text-white text-center text-xl md:text-2xl font-bold tracking-wide">{t('admissionForm')}</h1>
       </div>
       <div className="max-w-6xl mx-auto bg-gray-100 p-6 mt-6 shadow-lg rounded-lg mb-20">
+        {error ? <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block font-semibold mb-1">{t('sdmsCode')} <span className="text-red-600">*</span></label>
-              <input type="text" required className="w-full border border-gray-400 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-gs-accent" />
+              <input type="text" value={form.sdmsCode} onChange={(e) => setForm((current) => ({ ...current, sdmsCode: e.target.value }))} required className="w-full border border-gray-400 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-gs-accent" />
             </div>
             <div>
               <label className="block font-semibold mb-1">{t('firstName')} <span className="text-red-600">*</span></label>
-              <input type="text" required className="w-full border border-gray-400 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-gs-accent" />
+              <input type="text" value={form.firstName} onChange={(e) => setForm((current) => ({ ...current, firstName: e.target.value }))} required className="w-full border border-gray-400 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-gs-accent" />
             </div>
             <div>
               <label className="block font-semibold mb-1">{t('lastName')} <span className="text-red-600">*</span></label>
-              <input type="text" required className="w-full border border-gray-400 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-gs-accent" />
+              <input type="text" value={form.lastName} onChange={(e) => setForm((current) => ({ ...current, lastName: e.target.value }))} required className="w-full border border-gray-400 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-gs-accent" />
             </div>
             <div>
               <label className="block font-semibold mb-1">{t('lastLevelMark')} <span className="text-red-600">*</span></label>
-              <input type="number" required className="w-full border border-gray-400 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-gs-accent" />
+              <input type="number" value={form.lastLevelMark} onChange={(e) => setForm((current) => ({ ...current, lastLevelMark: e.target.value }))} required className="w-full border border-gray-400 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-gs-accent" />
             </div>
             <div>
               <label className="block font-semibold mb-1">{t('tradeOrSection')} <span className="text-red-600">*</span></label>
-              <select required className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent">
+              <select value={form.tradeOrSection} onChange={(e) => setForm((current) => ({ ...current, tradeOrSection: e.target.value }))} required className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent">
                 <option value="">{t('selectTrade')}</option>
                 <option value="SME">{t('scienceMath')}</option>
                 <option value="SRS">{t('socialStudies')}</option>
@@ -741,55 +770,152 @@ function ApplyPage() {
             </div>
             <div>
               <label className="block font-semibold mb-1">{t('model')} <span className="text-red-600">*</span></label>
-              <select required className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent">
+              <select value={form.model} onChange={(e) => setForm((current) => ({ ...current, model: e.target.value }))} required className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent">
                 <option value="">{t('selectModel')}</option>
-                <option>{t('day')}</option>
-                <option>{t('boarding')}</option>
+                <option value={t('day')}>{t('day')}</option>
+                <option value={t('boarding')}>{t('boarding')}</option>
               </select>
             </div>
             <div>
               <label className="block font-semibold mb-1">{t('gender')} <span className="text-red-600">*</span></label>
-              <select required className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent">
+              <select value={form.gender} onChange={(e) => setForm((current) => ({ ...current, gender: e.target.value }))} required className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent">
                 <option value="">{t('selectGender')}</option>
-                <option>{t('male')}</option>
-                <option>{t('female')}</option>
+                <option value={t('male')}>{t('male')}</option>
+                <option value={t('female')}>{t('female')}</option>
               </select>
             </div>
             <div>
               <label className="block font-semibold mb-1">{t('level')} <span className="text-red-600">*</span></label>
-              <select required className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent">
+              <select value={form.level} onChange={(e) => setForm((current) => ({ ...current, level: e.target.value }))} required className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent">
                 <option value="">{t('selectLevel')}</option>
                 <option>L3</option><option>L4</option><option>L5</option><option>L6</option>
               </select>
             </div>
             <div>
               <label className="block font-semibold mb-1">{t('fatherName')}</label>
-              <input type="text" className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent" />
+              <input type="text" value={form.fatherName} onChange={(e) => setForm((current) => ({ ...current, fatherName: e.target.value }))} className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent" />
             </div>
             <div>
               <label className="block font-semibold mb-1">{t('motherName')}</label>
-              <input type="text" className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent" />
+              <input type="text" value={form.motherName} onChange={(e) => setForm((current) => ({ ...current, motherName: e.target.value }))} className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent" />
             </div>
             <div>
               <label className="block font-semibold mb-1">{t('phone')} <span className="text-red-600">*</span></label>
-              <input type="tel" required pattern="[0-9]{10}" className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent" />
+              <input type="tel" value={form.phone} onChange={(e) => setForm((current) => ({ ...current, phone: e.target.value }))} required pattern="[0-9]{10}" className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent" />
             </div>
             <div>
               <label className="block font-semibold mb-1">{t('dateOfBirth')} <span className="text-red-600">*</span></label>
-              <input type="date" required className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent" />
+              <input type="date" value={form.dateOfBirth} onChange={(e) => setForm((current) => ({ ...current, dateOfBirth: e.target.value }))} required className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent" />
             </div>
           </div>
           <div className="mt-6">
             <label className="block font-semibold mb-1">{t('studentEmail')} <span className="text-red-600">*</span></label>
-            <input type="email" required className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent" />
+            <input type="email" value={form.studentEmail} onChange={(e) => setForm((current) => ({ ...current, studentEmail: e.target.value }))} required className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent" />
+          </div>
+          <div className="mt-6">
+            <label className="block font-semibold mb-1">Reason to apply</label>
+            <textarea
+              value={form.reasonToApply}
+              onChange={(e) => setForm((current) => ({ ...current, reasonToApply: e.target.value }))}
+              placeholder="add reason to apply uri umurokarasi cyangwa uvuye muri o level"
+              className="w-full border border-gray-400 px-3 py-2 rounded min-h-28 focus:ring-2 focus:ring-gs-accent"
+            />
           </div>
           <div className="mt-8">
-            <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded font-semibold shadow-md transition duration-300">{t('apply')}</button>
+            <button type="submit" disabled={submitting} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded font-semibold shadow-md transition duration-300 disabled:opacity-50">{submitting ? t('saving') : t('apply')}</button>
           </div>
         </form>
         <div className="text-center mt-6">
           <Link to="/" className="text-gs-dark text-sm hover:text-gs-accent"><i className="fa-solid fa-arrow-left mr-1"></i> {t('backToHome')}</Link>
         </div>
+      </div>
+      <Footer />
+    </div>
+  );
+}
+
+function AdditionalApplicationPage() {
+  const { t } = useTranslation();
+  const { token } = useParams();
+  const [application, setApplication] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    schoolFeesDetails: '',
+    additionalInformation: '',
+    schoolFeesApprovalFile: null,
+  });
+
+  useEffect(() => {
+    apiRequest(`/applications/additional/${token}`)
+      .then((data) => setApplication(data.application))
+      .catch((fetchError) => setError(fetchError.message))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+
+    const formData = new FormData();
+    formData.append('schoolFeesDetails', form.schoolFeesDetails);
+    formData.append('additionalInformation', form.additionalInformation);
+    if (form.schoolFeesApprovalFile) {
+      formData.append('schoolFeesApprovalFile', form.schoolFeesApprovalFile);
+    }
+
+    try {
+      await apiRequest(`/applications/additional/${token}`, {
+        method: 'POST',
+        body: formData,
+      });
+      setSubmitted(true);
+    } catch (submitError) {
+      setError(submitError.message);
+    }
+  };
+
+  return (
+    <div className="font-sans text-gs-text antialiased pt-20 min-h-screen bg-gs-cream">
+      <Navbar />
+      <div className="bg-gs-dark py-4 shadow-md">
+        <h1 className="text-white text-center text-xl md:text-2xl font-bold tracking-wide">Additional Application Form</h1>
+      </div>
+      <div className="max-w-4xl mx-auto bg-white p-6 mt-6 shadow-lg rounded-lg mb-20">
+        {loading ? <p className="text-gray-500">Loading...</p> : null}
+        {error ? <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+        {!loading && application && !submitted ? (
+          <form onSubmit={handleSubmit} className="grid gap-6">
+            <div className="rounded-2xl bg-[#fffaf4] border border-gs-dark/10 p-4">
+              <p className="font-bold text-gs-dark">{application.fullName}</p>
+              <p className="text-sm text-gray-500 mt-1">{application.studentEmail}</p>
+              <p className="text-sm text-gray-500 mt-1">{application.tradeOrSection} | {application.level}</p>
+            </div>
+            <div>
+              <label className="block font-semibold mb-1">School fees details</label>
+              <textarea value={form.schoolFeesDetails} onChange={(e) => setForm((current) => ({ ...current, schoolFeesDetails: e.target.value }))} className="w-full border border-gray-400 px-3 py-2 rounded min-h-28 focus:ring-2 focus:ring-gs-accent" required />
+            </div>
+            <div>
+              <label className="block font-semibold mb-1">Additional information</label>
+              <textarea value={form.additionalInformation} onChange={(e) => setForm((current) => ({ ...current, additionalInformation: e.target.value }))} className="w-full border border-gray-400 px-3 py-2 rounded min-h-28 focus:ring-2 focus:ring-gs-accent" />
+            </div>
+            <div>
+              <label className="block font-semibold mb-1">Upload school fees approvement file</label>
+              <input type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" onChange={(e) => setForm((current) => ({ ...current, schoolFeesApprovalFile: e.target.files?.[0] || null }))} className="w-full border border-gray-400 px-3 py-2 rounded focus:ring-2 focus:ring-gs-accent" />
+            </div>
+            <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded font-semibold shadow-md transition duration-300">Submit additional form</button>
+          </form>
+        ) : null}
+        {submitted ? (
+          <div className="text-center py-10">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <i className="fa-solid fa-check text-4xl text-green-600"></i>
+            </div>
+            <h2 className="font-serif text-3xl font-bold text-gs-dark mb-4">Additional form submitted</h2>
+            <p className="text-gray-600">Your extra information has been saved successfully.</p>
+          </div>
+        ) : null}
       </div>
       <Footer />
     </div>
@@ -863,6 +989,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/apply" element={<ApplyPage />} />
+        <Route path="/apply/additional/:token" element={<AdditionalApplicationPage />} />
         <Route path="/portal" element={<PortalRedirect />} />
         <Route path="/portal/:role" element={<PortalPage />} />
       </Routes>
@@ -871,6 +998,5 @@ function App() {
 }
 
 export default App;
-
 
 

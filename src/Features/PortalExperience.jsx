@@ -509,25 +509,195 @@ function RoleAnnouncements({ announcements, canPost, allowPublic, onCreated, def
   );
 }
 
+function ApplicationManager({ applications, selectedApplicationId, setSelectedApplicationId, onRefresh }) {
+  const [emailForm, setEmailForm] = useState({
+    subject: '',
+    text: '',
+    adminNotes: '',
+    requestAdditionalForm: false,
+    markStatus: '',
+    kind: 'custom',
+  });
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+
+  const selectedApplication =
+    applications.find((item) => item.id === selectedApplicationId) || applications[0] || null;
+
+  useEffect(() => {
+    if (!selectedApplicationId && applications[0]?.id) {
+      setSelectedApplicationId(applications[0].id);
+    }
+  }, [applications, selectedApplicationId, setSelectedApplicationId]);
+
+  useEffect(() => {
+    setEmailForm({
+      subject: selectedApplication?.status === 'additional-info-received' ? 'Final application update' : 'Application update',
+      text: '',
+      adminNotes: selectedApplication?.adminNotes || '',
+      requestAdditionalForm: false,
+      markStatus: '',
+      kind: 'custom',
+    });
+  }, [selectedApplication?.id]);
+
+  const sendEmail = async (preset) => {
+    if (!selectedApplication) {
+      return;
+    }
+
+    setSending(true);
+    setError('');
+
+    try {
+      await apiJson(`/applications/${selectedApplication.id}/email`, 'POST', preset || emailForm);
+      await onRefresh();
+    } catch (sendError) {
+      setError(sendError.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (!applications.length) {
+    return <EmptyState text="No student applications yet." />;
+  }
+
+  return (
+    <div className="grid xl:grid-cols-[320px_1fr] gap-6">
+      <div className="space-y-3">
+        {applications.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setSelectedApplicationId(item.id)}
+            className={`w-full rounded-2xl border p-4 text-left ${selectedApplication?.id === item.id ? 'border-gs-accent bg-[#fff4eb]' : 'border-gs-dark/10 bg-white'}`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-bold text-gs-dark">{item.fullName}</p>
+                <p className="text-sm text-gray-500 mt-1">{item.studentEmail}</p>
+              </div>
+              <span className="rounded-full bg-gs-dark px-3 py-1 text-xs text-white">{item.status}</span>
+            </div>
+            <p className="mt-2 text-sm text-gray-500">{item.tradeOrSection} | {item.level}</p>
+            <div className="mt-3 text-gs-accent text-sm font-bold">View</div>
+          </button>
+        ))}
+      </div>
+
+      {selectedApplication ? (
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-gs-dark/10 bg-[#fffaf4] p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h5 className="font-serif text-2xl text-gs-dark">{selectedApplication.fullName}</h5>
+                <p className="mt-1 text-sm text-gray-500">{selectedApplication.studentEmail}</p>
+              </div>
+              <span className="rounded-full bg-gs-dark px-4 py-2 text-sm text-white">{selectedApplication.status}</span>
+            </div>
+            <div className="mt-5 grid md:grid-cols-2 gap-4 text-sm text-gray-600">
+              <div><span className="font-bold text-gs-dark">SDMS:</span> {selectedApplication.sdmsCode}</div>
+              <div><span className="font-bold text-gs-dark">Phone:</span> {selectedApplication.phone}</div>
+              <div><span className="font-bold text-gs-dark">Trade:</span> {selectedApplication.tradeOrSection}</div>
+              <div><span className="font-bold text-gs-dark">Model:</span> {selectedApplication.model}</div>
+              <div><span className="font-bold text-gs-dark">Gender:</span> {selectedApplication.gender}</div>
+              <div><span className="font-bold text-gs-dark">Level:</span> {selectedApplication.level}</div>
+              <div><span className="font-bold text-gs-dark">Last level mark:</span> {selectedApplication.lastLevelMark}</div>
+              <div><span className="font-bold text-gs-dark">Date of birth:</span> {new Date(selectedApplication.dateOfBirth).toLocaleDateString()}</div>
+            </div>
+            <div className="mt-5">
+              <p className="font-bold text-gs-dark">Reason to apply</p>
+              <p className="mt-2 text-sm text-gray-600">{selectedApplication.reasonToApply || 'No reason added.'}</p>
+            </div>
+            {selectedApplication.schoolFeesDetails || selectedApplication.additionalInformation || selectedApplication.schoolFeesApprovalFileUrl ? (
+              <div className="mt-5 rounded-2xl bg-white p-4 border border-gs-dark/10">
+                <p className="font-bold text-gs-dark">Additional form</p>
+                <p className="mt-2 text-sm text-gray-600">{selectedApplication.schoolFeesDetails || 'No school fees details yet.'}</p>
+                <p className="mt-2 text-sm text-gray-600">{selectedApplication.additionalInformation || 'No extra notes submitted yet.'}</p>
+                {selectedApplication.schoolFeesApprovalFileUrl ? (
+                  <a href={buildFileUrl(selectedApplication.schoolFeesApprovalFileUrl)} target="_blank" rel="noreferrer" className="mt-3 inline-flex rounded-xl bg-gs-dark px-4 py-2 text-sm font-bold text-white">
+                    Open fees approval file
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="rounded-3xl border border-gs-dark/10 bg-white p-5">
+            <div className="flex flex-wrap gap-3">
+              <button type="button" onClick={() => sendEmail({
+                subject: 'Additional information required',
+                text: 'Please complete the additional form so we can continue reviewing your application.',
+                requestAdditionalForm: true,
+                kind: 'additional-request',
+                markStatus: 'additional-info-requested',
+                adminNotes: emailForm.adminNotes,
+              })} disabled={sending} className="rounded-2xl bg-gs-dark px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
+                Send additional form link
+              </button>
+              <button type="button" onClick={() => sendEmail({
+                subject: 'Final admission approval',
+                text: 'You are officially accepted. Please come to school with your parent or guardian and bring all required documents.',
+                requestAdditionalForm: false,
+                kind: 'final-approval',
+                markStatus: 'accepted',
+                adminNotes: emailForm.adminNotes,
+              })} disabled={sending} className="rounded-2xl bg-green-600 px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
+                Send final approval
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-4">
+              {error ? <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+              <input value={emailForm.subject} onChange={(event) => setEmailForm((current) => ({ ...current, subject: event.target.value }))} placeholder="Email subject" className="rounded-2xl border border-gs-dark/10 px-4 py-3" />
+              <textarea value={emailForm.text} onChange={(event) => setEmailForm((current) => ({ ...current, text: event.target.value }))} placeholder="Write the admin reply here" className="min-h-28 rounded-2xl border border-gs-dark/10 px-4 py-3" />
+              <textarea value={emailForm.adminNotes} onChange={(event) => setEmailForm((current) => ({ ...current, adminNotes: event.target.value }))} placeholder="Admin notes" className="min-h-24 rounded-2xl border border-gs-dark/10 px-4 py-3" />
+              <select value={emailForm.markStatus} onChange={(event) => setEmailForm((current) => ({ ...current, markStatus: event.target.value }))} className="rounded-2xl border border-gs-dark/10 px-4 py-3">
+                <option value="">Keep current status</option>
+                <option value="submitted">Submitted</option>
+                <option value="additional-info-requested">Additional info requested</option>
+                <option value="additional-info-received">Additional info received</option>
+                <option value="accepted">Accepted</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <label className="flex items-center gap-2 text-sm text-gray-600">
+                <input type="checkbox" checked={emailForm.requestAdditionalForm} onChange={(event) => setEmailForm((current) => ({ ...current, requestAdditionalForm: event.target.checked }))} />
+                Include additional form link
+              </label>
+              <button type="button" onClick={() => sendEmail()} disabled={sending} className="rounded-2xl bg-gs-accent px-4 py-3 text-sm font-bold text-white disabled:opacity-50">
+                {sending ? 'Sending...' : 'Send custom email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function AdminDashboard({ user, onLogout }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('overview');
   const [announcements, setAnnouncements] = useState([]);
   const [users, setUsers] = useState([]);
+  const [applications, setApplications] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [teacherComments, setTeacherComments] = useState([]);
   const [teacherConversations, setTeacherConversations] = useState([]);
   const [parentConversations, setParentConversations] = useState([]);
   const [activeTeacherId, setActiveTeacherId] = useState('');
   const [activeParentId, setActiveParentId] = useState('');
+  const [selectedApplicationId, setSelectedApplicationId] = useState('');
   const [deletingUserId, setDeletingUserId] = useState('');
   const [deletingTaskId, setDeletingTaskId] = useState('');
   const { notifications, dismissNotification, notifyAnnouncement, notifyComment } = useRealtimeNotifications();
 
   const loadAdminData = async () => {
-    const [announcementData, userData, taskData, commentData, teacherChatData, parentChatData] = await Promise.all([
+    const [announcementData, userData, applicationData, taskData, commentData, teacherChatData, parentChatData] = await Promise.all([
       apiRequest('/announcements'),
       apiRequest('/users'),
+      apiRequest('/applications'),
       apiRequest('/tasks'),
       apiRequest('/tasks/comments/feed'),
       apiRequest('/chat/admin/teacher'),
@@ -536,6 +706,7 @@ function AdminDashboard({ user, onLogout }) {
 
     setAnnouncements(announcementData.announcements);
     setUsers(userData.users);
+    setApplications(applicationData.applications);
     setTasks(taskData.tasks);
     setTeacherComments(commentData.comments);
     setTeacherConversations(teacherChatData.conversations);
@@ -641,11 +812,12 @@ function AdminDashboard({ user, onLogout }) {
     <NotificationStack notifications={notifications} onDismiss={dismissNotification} />
     <DashboardShell user={user} onLogout={onLogout} title={t('adminControlRoom')} subtitle={t('adminSubtitle')} accentClass="bg-gs-dark">
       <div className="flex flex-wrap gap-2 mb-6">
-        {['overview', 'announcements', 'users', 'tasks', 'comments', 'chatFromTeacher', 'chatFromParent'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}
+        {['overview', 'announcements', 'users', 'applications', 'tasks', 'comments', 'chatFromTeacher', 'chatFromParent'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}
       </div>
       {activeTab === 'overview' ? <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">{[[t('totalUsers'), stats.totalUsers], [t('teachers'), stats.teachers], [t('parents'), stats.parents], [t('student'), stats.students]].map(([label, value]) => <div key={label} className="rounded-3xl p-6 bg-white border border-gs-dark/5"><p className="text-sm text-gray-500">{label}</p><p className="text-4xl font-serif text-gs-dark mt-3">{value}</p></div>)}</div> : null}
       {activeTab === 'announcements' ? <RoleAnnouncements announcements={announcements} canPost allowPublic onCreated={(announcement) => setAnnouncements((current) => [announcement, ...current])} defaultRoles={['teacher', 'student', 'parent', 'admin']} /> : null}
       {activeTab === 'users' ? <Panel title={t('userManagement')} subtitle={t('userManagement')}><UserRoleManager users={users} currentUserId={user.id} deletingUserId={deletingUserId} onDeleteUser={handleDeleteUser} /></Panel> : null}
+      {activeTab === 'applications' ? <Panel title="Student applications" subtitle="Review submitted students, send reply emails, and request more details."><ApplicationManager applications={applications} selectedApplicationId={selectedApplicationId} setSelectedApplicationId={setSelectedApplicationId} onRefresh={loadAdminData} /></Panel> : null}
       {activeTab === 'tasks' ? <Panel title={t('uploadedTasks')} subtitle={t('adminTaskManagerSubtitle')}><div className="space-y-6">{tasks.length ? tasks.map((task) => <TaskCard key={task.id} task={task} comments={teacherComments} canComment={false} canDelete onDelete={handleDeleteTask} deletingTaskId={deletingTaskId} />) : <EmptyState text={t('noTasksYet')} />}</div></Panel> : null}
       {activeTab === 'comments' ? <Panel title={t('teacherComments')} subtitle={t('teacherCommentsSubtitle')}><div className="space-y-3">{teacherComments.length ? teacherComments.map((item) => <div key={item.id} className="rounded-2xl bg-[#fffaf4] border border-gs-dark/10 p-4"><div className="flex justify-between gap-4"><div><p className="font-bold text-gs-dark">{item.author?.fullName} ({item.author?.role})</p><p className="text-sm text-gray-500 mt-1">{t('task')}: {typeof item.task === 'string' ? item.task : item.task?.title}</p></div><span className="text-xs text-gray-400">{new Date(item.createdAt).toLocaleString()}</span></div><p className="text-gray-600 mt-3">{item.text}</p></div>) : <EmptyState text={t('noTeacherComments')} />}</div></Panel> : null}
       {activeTab === 'chatFromTeacher' ? <Panel title={t('chatFromTeacher')} subtitle={t('seeWhichTeacher')}><ChatPanel title={t('teachers')} people={teacherConversations} activePersonId={activeTeacherId} setActivePersonId={setActiveTeacherId} messages={teacherConversations.find((item) => item.user.id === activeTeacherId)?.messages || []} onSend={handleSendMessage} /></Panel> : null}
