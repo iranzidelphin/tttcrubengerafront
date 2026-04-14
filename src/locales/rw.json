@@ -285,5 +285,8 @@
   "noMessagesInConversation": "Nta message mu byiganiro.",
   "choosePersonConversation": "Hitamo umuntu.",
   "viewContacts": "Reba contacts",
-  "wakingUpServer": "Seriveri iri kubyuka. Ubusabe bwa mbere bushobora gufata amasegonda make."
+  "wakingUpServer": "Seriveri iri kubyuka. Ubusabe bwa mbere bushobora gufata amasegonda make.",
+  "announcementNotificationTag": "Itangazo rishya",
+  "commentNotificationTag": "Igitekerezo gishya",
+  "newComment": "Igitekerezo gishya"
 }

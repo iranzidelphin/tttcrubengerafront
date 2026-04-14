@@ -285,5 +285,8 @@
   "noMessagesInConversation": "Hakuna ujumbe katika mahusiano haya.",
   "choosePersonConversation": "Chagua mtu wa kuzungumza naye.",
   "viewContacts": "Tazama wasiliana",
-  "wakingUpServer": "Seva inaamka. Ombi la kwanza linaweza kuchukua sekunde chache."
+  "wakingUpServer": "Seva inaamka. Ombi la kwanza linaweza kuchukua sekunde chache.",
+  "announcementNotificationTag": "Tangazo jipya",
+  "commentNotificationTag": "Maoni mapya",
+  "newComment": "Maoni mapya"
 }

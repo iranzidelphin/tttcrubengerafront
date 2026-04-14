@@ -286,5 +286,8 @@
   "noMessagesInConversation": "No messages in this conversation yet.",
   "choosePersonConversation": "Choose a person to open the conversation.",
   "viewContacts": "View contacts",
-  "wakingUpServer": "Waking up server. This may take a few seconds on first request."
+  "wakingUpServer": "Waking up server. This may take a few seconds on first request.",
+  "announcementNotificationTag": "New announcement",
+  "commentNotificationTag": "New comment",
+  "newComment": "New comment"
 }

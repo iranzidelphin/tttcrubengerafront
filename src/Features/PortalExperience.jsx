@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { apiJson, apiRequest, buildFileUrl, getStoredUser } from '../lib/api';
@@ -67,6 +67,123 @@ function Panel({ title, subtitle, children, action }) {
 function EmptyState({ text }) {
   const { t } = useTranslation();
   return <div className="rounded-2xl bg-[#f7f5f1] p-6 md:p-8 text-center text-gray-500 text-sm md:text-base">{text}</div>;
+}
+
+function NotificationStack({ notifications, onDismiss }) {
+  return (
+    <div className="fixed top-24 right-4 z-[90] flex w-[min(92vw,360px)] flex-col gap-3">
+      {notifications.map((notification) => (
+        <button
+          key={notification.id}
+          type="button"
+          onClick={() => onDismiss(notification.id)}
+          className="rounded-2xl border border-gs-dark/10 bg-white/95 p-4 text-left shadow-xl backdrop-blur"
+        >
+          <div className="flex items-start gap-3">
+            <div className={`mt-1 h-2.5 w-2.5 rounded-full ${notification.kind === 'comment' ? 'bg-gs-accent' : 'bg-gs-dark'}`} />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs uppercase tracking-[0.22em] text-gray-400">{notification.tag}</p>
+              <p className="mt-1 font-bold text-gs-dark">{notification.title}</p>
+              <p className="mt-1 text-sm text-gray-600">{notification.message}</p>
+            </div>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function useRealtimeNotifications() {
+  const { t } = useTranslation();
+  const [notifications, setNotifications] = useState([]);
+  const audioRef = useRef(null);
+  const audioTimeoutRef = useRef(null);
+
+  const dismissNotification = (id) => {
+    setNotifications((current) => current.filter((item) => item.id !== id));
+  };
+
+  const playSoftAlert = () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+      if (!AudioContextClass) {
+        return;
+      }
+
+      if (!audioRef.current) {
+        audioRef.current = new AudioContextClass();
+      }
+
+      const context = audioRef.current;
+
+      if (context.state === 'suspended') {
+        context.resume().catch(() => {});
+      }
+
+      if (audioTimeoutRef.current) {
+        window.clearTimeout(audioTimeoutRef.current);
+      }
+
+      const start = context.currentTime;
+      const gain = context.createGain();
+      gain.gain.value = 0.012;
+      gain.connect(context.destination);
+
+      for (let index = 0; index < 5; index += 1) {
+        const offset = index * 1.4;
+        const oscillator = context.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(660, start + offset);
+        oscillator.connect(gain);
+        oscillator.start(start + offset);
+        oscillator.stop(start + offset + 0.18);
+      }
+
+      audioTimeoutRef.current = window.setTimeout(() => {
+        gain.disconnect();
+      }, 7000);
+    } catch (error) {
+      // Ignore audio issues quietly so notifications still appear.
+    }
+  };
+
+  const pushNotification = ({ kind, title, message, tag }) => {
+    const id = `${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setNotifications((current) => [{ id, kind, title, message, tag }, ...current].slice(0, 4));
+    playSoftAlert();
+    window.setTimeout(() => dismissNotification(id), 7000);
+  };
+
+  const notifyAnnouncement = (announcement) => {
+    pushNotification({
+      kind: 'announcement',
+      tag: t('announcementNotificationTag'),
+      title: announcement.title,
+      message: announcement.message,
+    });
+  };
+
+  const notifyComment = (comment) => {
+    const authorName = comment.author?.fullName || t('newComment');
+    pushNotification({
+      kind: 'comment',
+      tag: t('commentNotificationTag'),
+      title: authorName,
+      message: comment.text,
+    });
+  };
+
+  return {
+    notifications,
+    dismissNotification,
+    notifyAnnouncement,
+    notifyComment,
+  };
 }
 
 function AnnouncementList({ announcements }) {
@@ -380,6 +497,7 @@ function AdminDashboard({ user, onLogout }) {
   const [parentConversations, setParentConversations] = useState([]);
   const [activeTeacherId, setActiveTeacherId] = useState('');
   const [activeParentId, setActiveParentId] = useState('');
+  const { notifications, dismissNotification, notifyAnnouncement, notifyComment } = useRealtimeNotifications();
 
   useEffect(() => {
     Promise.all([apiRequest('/announcements'), apiRequest('/users'), apiRequest('/tasks/comments/feed'), apiRequest('/chat/admin/teacher'), apiRequest('/chat/admin/parent')]).then(([announcementData, userData, commentData, teacherChatData, parentChatData]) => {
@@ -396,8 +514,14 @@ function AdminDashboard({ user, onLogout }) {
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return undefined;
-    const handleAnnouncement = (announcement) => setAnnouncements((current) => [announcement, ...current.filter((item) => item.id !== announcement.id)]);
-    const handleComment = (comment) => setTeacherComments((current) => [comment, ...current.filter((item) => item.id !== comment.id)]);
+    const handleAnnouncement = (announcement) => {
+      setAnnouncements((current) => [announcement, ...current.filter((item) => item.id !== announcement.id)]);
+      notifyAnnouncement(announcement);
+    };
+    const handleComment = (comment) => {
+      setTeacherComments((current) => [comment, ...current.filter((item) => item.id !== comment.id)]);
+      notifyComment(comment);
+    };
     const updateConversations = (current, message) => current.map((conversation) => {
       if (conversation.user.id === message.sender?.id || conversation.user.id === message.recipient?.id) {
         const messages = [...conversation.messages.filter((item) => item.id !== message.id), message];
@@ -441,6 +565,8 @@ function AdminDashboard({ user, onLogout }) {
   };
 
   return (
+    <>
+    <NotificationStack notifications={notifications} onDismiss={dismissNotification} />
     <DashboardShell user={user} onLogout={onLogout} title={t('adminControlRoom')} subtitle={t('adminSubtitle')} accentClass="bg-gs-dark">
       <div className="flex flex-wrap gap-2 mb-6">
         {['overview', 'announcements', 'users', 'comments', 'chatFromTeacher', 'chatFromParent'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}
@@ -452,6 +578,7 @@ function AdminDashboard({ user, onLogout }) {
       {activeTab === 'chatFromTeacher' ? <Panel title={t('chatFromTeacher')} subtitle={t('seeWhichTeacher')}><ChatPanel title={t('teachers')} people={teacherConversations} activePersonId={activeTeacherId} setActivePersonId={setActiveTeacherId} messages={teacherConversations.find((item) => item.user.id === activeTeacherId)?.messages || []} onSend={handleSendMessage} /></Panel> : null}
       {activeTab === 'chatFromParent' ? <Panel title={t('chatFromParent')} subtitle={t('liveParentConversations')}><ChatPanel title={t('parents')} people={parentConversations} activePersonId={activeParentId} setActivePersonId={setActiveParentId} messages={parentConversations.find((item) => item.user.id === activeParentId)?.messages || []} onSend={handleSendMessage} /></Panel> : null}
     </DashboardShell>
+    </>
   );
 }
 
@@ -464,6 +591,7 @@ function TeacherDashboard({ user, onLogout }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [adminUser, setAdminUser] = useState(null);
   const [taskForm, setTaskForm] = useState({ title: '', description: '', firstComment: '', file: null });
+  const { notifications, dismissNotification, notifyAnnouncement, notifyComment } = useRealtimeNotifications();
 
   const loadTeacherData = async () => {
     const [taskData, announcementData, chatData] = await Promise.all([apiRequest('/tasks'), apiRequest('/announcements'), apiRequest('/chat/with-admin')]);
@@ -483,9 +611,13 @@ function TeacherDashboard({ user, onLogout }) {
     const onAnnouncement = (announcement) => {
       if (announcement.targetRoles.includes('teacher') || announcement.visibleToGuests || announcement.createdByRole === 'admin') {
         setAnnouncements((current) => [announcement, ...current.filter((item) => item.id !== announcement.id)]);
+        notifyAnnouncement(announcement);
       }
     };
-    const onComment = (comment) => setComments((current) => [...current.filter((item) => item.id !== comment.id), comment]);
+    const onComment = (comment) => {
+      setComments((current) => [...current.filter((item) => item.id !== comment.id), comment]);
+      notifyComment(comment);
+    };
     const onChat = (message) => {
       if (message.audience === 'teacher') {
         setChatMessages((current) => [...current.filter((item) => item.id !== message.id), message]);
@@ -515,12 +647,15 @@ function TeacherDashboard({ user, onLogout }) {
   };
 
   return (
+    <>
+    <NotificationStack notifications={notifications} onDismiss={dismissNotification} />
     <DashboardShell user={user} onLogout={onLogout} title={t('teacherWorkspace')} subtitle={t('teacherSubtitle')} accentClass="bg-[linear-gradient(135deg,#1A3C34,#2d5b50)]">
       <div className="flex flex-wrap gap-2 mb-6">{['tasks', 'announcements', 'chat'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}</div>
       {activeTab === 'tasks' ? <div className="grid xl:grid-cols-[380px_1fr] gap-6"><Panel title={t('uploadTask')} subtitle={t('uploadTaskFile')}><form onSubmit={handleTaskSubmit} className="grid gap-4"><input value={taskForm.title} onChange={(event) => setTaskForm((current) => ({ ...current, title: event.target.value }))} placeholder={t('taskTitle')} className="rounded-2xl border border-gs-dark/10 px-4 py-3" required /><textarea value={taskForm.description} onChange={(event) => setTaskForm((current) => ({ ...current, description: event.target.value }))} placeholder={t('taskDescription')} className="rounded-2xl border border-gs-dark/10 px-4 py-3 min-h-28" required /><textarea value={taskForm.firstComment} onChange={(event) => setTaskForm((current) => ({ ...current, firstComment: event.target.value }))} placeholder={t('firstCommentForStudents')} className="rounded-2xl border border-gs-dark/10 px-4 py-3 min-h-24" /><input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.png,.jpg,.jpeg" onChange={(event) => setTaskForm((current) => ({ ...current, file: event.target.files?.[0] || null }))} className="rounded-2xl border border-gs-dark/10 px-4 py-3" /><div className="text-sm text-gray-500">{t('teachersCanUpload')}</div><button type="submit" className="px-5 py-3 rounded-2xl bg-gs-accent text-white font-bold">{t('uploadTask')}</button></form></Panel><Panel title={t('uploadedTasks')} subtitle={t('uploadedTasksSubtitle')}><div className="space-y-6">{tasks.length ? tasks.map((task) => <TaskCard key={task.id} task={task} comments={comments} canComment onComment={handleTaskComment} />) : <EmptyState text={t('noTasksYet')} />}</div></Panel></div> : null}
       {activeTab === 'announcements' ? <RoleAnnouncements announcements={announcements} canPost allowPublic={false} onCreated={(announcement) => setAnnouncements((current) => [announcement, ...current])} defaultRoles={['student', 'parent', 'teacher']} /> : null}
       {activeTab === 'chat' ? <Panel title={t('talkToAdmin')} subtitle={t('parentChatSubtitle')}><ChatPanel title="Admin" people={adminUser ? [{ user: adminUser, messages: chatMessages, lastMessage: chatMessages.at(-1) || null }] : []} activePersonId={adminUser?.id || ''} setActivePersonId={() => {}} messages={chatMessages} onSend={async (_, content) => { const data = await apiJson('/chat/messages', 'POST', { content }); setChatMessages((current) => [...current.filter((item) => item.id !== data.message.id), data.message]); }} /></Panel> : null}
     </DashboardShell>
+    </>
   );
 }
 
@@ -530,6 +665,7 @@ function StudentDashboard({ user, onLogout }) {
   const [tasks, setTasks] = useState([]);
   const [comments, setComments] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const { notifications, dismissNotification, notifyAnnouncement, notifyComment } = useRealtimeNotifications();
 
   useEffect(() => {
     Promise.all([apiRequest('/tasks'), apiRequest('/announcements')]).then(async ([taskData, announcementData]) => {
@@ -546,9 +682,13 @@ function StudentDashboard({ user, onLogout }) {
     const onAnnouncement = (announcement) => {
       if (announcement.targetRoles.includes('student') || announcement.visibleToGuests) {
         setAnnouncements((current) => [announcement, ...current.filter((item) => item.id !== announcement.id)]);
+        notifyAnnouncement(announcement);
       }
     };
-    const onComment = (comment) => setComments((current) => [...current.filter((item) => item.id !== comment.id), comment]);
+    const onComment = (comment) => {
+      setComments((current) => [...current.filter((item) => item.id !== comment.id), comment]);
+      notifyComment(comment);
+    };
     socket.on('announcement:created', onAnnouncement);
     socket.on('task:comment-created', onComment);
     return () => { socket.off('announcement:created', onAnnouncement); socket.off('task:comment-created', onComment); };
@@ -560,11 +700,14 @@ function StudentDashboard({ user, onLogout }) {
   };
 
   return (
+    <>
+    <NotificationStack notifications={notifications} onDismiss={dismissNotification} />
     <DashboardShell user={user} onLogout={onLogout} title={t('studentDashboard')} subtitle={t('studentSubtitle')} accentClass="bg-[linear-gradient(135deg,#C07756,#de9a7c)]">
       <div className="flex flex-wrap gap-2 mb-6">{['tasks', 'announcements'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}</div>
       {activeTab === 'tasks' ? <Panel title={t('teacherTasks')} subtitle={t('teacherTasksSubtitle')}><div className="space-y-6">{tasks.length ? tasks.map((task) => <TaskCard key={task.id} task={task} comments={comments} canComment onComment={handleTaskComment} />) : <EmptyState text={t('noTeacherTasks')} />}</div></Panel> : null}
       {activeTab === 'announcements' ? <Panel title={t('announcements')} subtitle={t('parentAnnouncementsSubtitle')}><AnnouncementList announcements={announcements.filter((item) => item.visibleToGuests || item.targetRoles.includes('student'))} /></Panel> : null}
     </DashboardShell>
+    </>
   );
 }
 
@@ -574,6 +717,7 @@ function ParentDashboard({ user, onLogout }) {
   const [announcements, setAnnouncements] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
   const [adminUser, setAdminUser] = useState(null);
+  const { notifications, dismissNotification, notifyAnnouncement } = useRealtimeNotifications();
 
   useEffect(() => {
     Promise.all([apiRequest('/announcements'), apiRequest('/chat/with-admin')]).then(([announcementData, chatData]) => {
@@ -589,6 +733,7 @@ function ParentDashboard({ user, onLogout }) {
     const onAnnouncement = (announcement) => {
       if (announcement.targetRoles.includes('parent') || announcement.visibleToGuests || announcement.createdByRole === 'teacher') {
         setAnnouncements((current) => [announcement, ...current.filter((item) => item.id !== announcement.id)]);
+        notifyAnnouncement(announcement);
       }
     };
     const onChat = (message) => { if (message.audience === 'parent') setChatMessages((current) => [...current.filter((item) => item.id !== message.id), message]); };
@@ -598,11 +743,14 @@ function ParentDashboard({ user, onLogout }) {
   }, []);
 
   return (
+    <>
+    <NotificationStack notifications={notifications} onDismiss={dismissNotification} />
     <DashboardShell user={user} onLogout={onLogout} title={t('parentDashboard')} subtitle={t('parentDashboardSubtitle')} accentClass="bg-[linear-gradient(135deg,#8f5e42,#C07756)]">
       <div className="flex flex-wrap gap-2 mb-6">{['announcements', 'chat'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}</div>
       {activeTab === 'announcements' ? <Panel title={t('parentAnnouncementsTitle')} subtitle={t('parentAnnouncementsSubtitle')}><AnnouncementList announcements={announcements.filter((item) => item.visibleToGuests || item.targetRoles.includes('parent'))} /></Panel> : null}
       {activeTab === 'chat' ? <Panel title={t('talkToAdmin')} subtitle={t('parentChatSubtitle')}><ChatPanel title="Admin" people={adminUser ? [{ user: adminUser, messages: chatMessages, lastMessage: chatMessages.at(-1) || null }] : []} activePersonId={adminUser?.id || ''} setActivePersonId={() => {}} messages={chatMessages} onSend={async (_, content) => { const data = await apiJson('/chat/messages', 'POST', { content }); setChatMessages((current) => [...current.filter((item) => item.id !== data.message.id), data.message]); }} /></Panel> : null}
     </DashboardShell>
+    </>
   );
 }
 
