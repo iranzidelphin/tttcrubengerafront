@@ -691,6 +691,12 @@ function AdminDashboard({ user, onLogout }) {
   const [selectedApplicationId, setSelectedApplicationId] = useState('');
   const [deletingUserId, setDeletingUserId] = useState('');
   const [deletingTaskId, setDeletingTaskId] = useState('');
+  const [galleryPhotos, setGalleryPhotos] = useState([
+    { id: 1, title: 'School Building', description: 'Main campus building of TTC Rubengera', image: '/gallery-1.svg' },
+    { id: 2, title: 'Students in Class', description: 'Active learning environment in our classrooms', image: '/gallery-2.svg' },
+    { id: 3, title: 'Sports Day', description: 'Annual sports competition and activities', image: '/gallery-3.svg' },
+  ]);
+  const [galleryForm, setGalleryForm] = useState({ title: '', description: '', file: null });
   const { notifications, dismissNotification, notifyAnnouncement, notifyComment } = useRealtimeNotifications();
 
   const loadAdminData = async () => {
@@ -786,6 +792,32 @@ function AdminDashboard({ user, onLogout }) {
     }
   };
 
+  const handleGalleryPhotoDelete = async (photoId) => {
+    if (!window.confirm(t('confirmDeletePhoto'))) {
+      return;
+    }
+    setGalleryPhotos((current) => current.filter((p) => p.id !== photoId));
+  };
+
+  const handleGalleryPhotoUpload = (event) => {
+    event.preventDefault();
+    if (!galleryForm.title || !galleryForm.file) return;
+    
+    const file = galleryForm.file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const newPhoto = {
+        id: Date.now(),
+        title: galleryForm.title,
+        description: galleryForm.description,
+        image: e.target.result,
+      };
+      setGalleryPhotos((current) => [...current, newPhoto]);
+      setGalleryForm({ title: '', description: '', file: null });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const stats = useMemo(() => ({
     totalUsers: users.length,
     teachers: users.filter((item) => item.role === 'teacher').length,
@@ -812,7 +844,7 @@ function AdminDashboard({ user, onLogout }) {
     <NotificationStack notifications={notifications} onDismiss={dismissNotification} />
     <DashboardShell user={user} onLogout={onLogout} title={t('adminControlRoom')} subtitle={t('adminSubtitle')} accentClass="bg-gs-dark">
       <div className="flex flex-wrap gap-2 mb-6">
-        {['overview', 'announcements', 'users', 'applications', 'tasks', 'comments', 'chatFromTeacher', 'chatFromParent'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}
+        {['overview', 'announcements', 'users', 'applications', 'tasks', 'comments', 'gallery', 'chatFromTeacher', 'chatFromParent'].map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{t(tab)}</TabButton>)}
       </div>
       {activeTab === 'overview' ? <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">{[[t('totalUsers'), stats.totalUsers], [t('teachers'), stats.teachers], [t('parents'), stats.parents], [t('student'), stats.students]].map(([label, value]) => <div key={label} className="rounded-3xl p-6 bg-white border border-gs-dark/5"><p className="text-sm text-gray-500">{label}</p><p className="text-4xl font-serif text-gs-dark mt-3">{value}</p></div>)}</div> : null}
       {activeTab === 'announcements' ? <RoleAnnouncements announcements={announcements} canPost allowPublic onCreated={(announcement) => setAnnouncements((current) => [announcement, ...current])} defaultRoles={['teacher', 'student', 'parent', 'admin']} /> : null}
@@ -820,6 +852,59 @@ function AdminDashboard({ user, onLogout }) {
       {activeTab === 'applications' ? <Panel title="Student applications" subtitle="Review submitted students, send reply emails, and request more details."><ApplicationManager applications={applications} selectedApplicationId={selectedApplicationId} setSelectedApplicationId={setSelectedApplicationId} onRefresh={loadAdminData} /></Panel> : null}
       {activeTab === 'tasks' ? <Panel title={t('uploadedTasks')} subtitle={t('adminTaskManagerSubtitle')}><div className="space-y-6">{tasks.length ? tasks.map((task) => <TaskCard key={task.id} task={task} comments={teacherComments} canComment={false} canDelete onDelete={handleDeleteTask} deletingTaskId={deletingTaskId} />) : <EmptyState text={t('noTasksYet')} />}</div></Panel> : null}
       {activeTab === 'comments' ? <Panel title={t('teacherComments')} subtitle={t('teacherCommentsSubtitle')}><div className="space-y-3">{teacherComments.length ? teacherComments.map((item) => <div key={item.id} className="rounded-2xl bg-[#fffaf4] border border-gs-dark/10 p-4"><div className="flex justify-between gap-4"><div><p className="font-bold text-gs-dark">{item.author?.fullName} ({item.author?.role})</p><p className="text-sm text-gray-500 mt-1">{t('task')}: {typeof item.task === 'string' ? item.task : item.task?.title}</p></div><span className="text-xs text-gray-400">{new Date(item.createdAt).toLocaleString()}</span></div><p className="text-gray-600 mt-3">{item.text}</p></div>) : <EmptyState text={t('noTeacherComments')} />}</div></Panel> : null}
+      {activeTab === 'gallery' ? (
+        <Panel title={t('galleryManagement')} subtitle={t('galleryManagementSubtitle')}>
+          <form onSubmit={handleGalleryPhotoUpload} className="mb-6 p-4 bg-gray-50 rounded-xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <input
+                type="text"
+                value={galleryForm.title}
+                onChange={(e) => setGalleryForm((current) => ({ ...current, title: e.target.value }))}
+                placeholder={t('photoTitle')}
+                className="rounded-xl border border-gs-dark/10 px-4 py-2"
+                required
+              />
+              <input
+                type="text"
+                value={galleryForm.description}
+                onChange={(e) => setGalleryForm((current) => ({ ...current, description: e.target.value }))}
+                placeholder={t('photoDescription')}
+                className="rounded-xl border border-gs-dark/10 px-4 py-2"
+              />
+            </div>
+            <div className="mb-4">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setGalleryForm((current) => ({ ...current, file: e.target.files?.[0] || null }))}
+                className="rounded-xl border border-gs-dark/10 px-4 py-2 w-full"
+              />
+            </div>
+            <button type="submit" className="px-5 py-2 rounded-xl bg-gs-accent text-white font-bold">
+              {t('uploadPhoto')}
+            </button>
+          </form>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {galleryPhotos.length ? galleryPhotos.map((photo) => (
+              <div key={photo.id} className="bg-white rounded-xl overflow-hidden shadow border border-gs-dark/5">
+                <div className="relative h-40 bg-gs-dark">
+                  <img src={photo.image} alt={photo.title} className="w-full h-full object-cover" />
+                </div>
+                <div className="p-4">
+                  <h4 className="font-bold text-gs-dark">{photo.title}</h4>
+                  <p className="text-sm text-gray-500 mt-1">{photo.description}</p>
+                  <button
+                    onClick={() => handleGalleryPhotoDelete(photo.id)}
+                    className="mt-3 text-red-500 text-sm hover:text-red-700 font-semibold"
+                  >
+                    <i className="fa-solid fa-trash mr-1"></i> {t('deletePhoto')}
+                  </button>
+                </div>
+              </div>
+            )) : <EmptyState text={t('noPhotos')} />}
+          </div>
+        </Panel>
+      ) : null}
       {activeTab === 'chatFromTeacher' ? <Panel title={t('chatFromTeacher')} subtitle={t('seeWhichTeacher')}><ChatPanel title={t('teachers')} people={teacherConversations} activePersonId={activeTeacherId} setActivePersonId={setActiveTeacherId} messages={teacherConversations.find((item) => item.user.id === activeTeacherId)?.messages || []} onSend={handleSendMessage} /></Panel> : null}
       {activeTab === 'chatFromParent' ? <Panel title={t('chatFromParent')} subtitle={t('liveParentConversations')}><ChatPanel title={t('parents')} people={parentConversations} activePersonId={activeParentId} setActivePersonId={setActiveParentId} messages={parentConversations.find((item) => item.user.id === activeParentId)?.messages || []} onSend={handleSendMessage} /></Panel> : null}
     </DashboardShell>

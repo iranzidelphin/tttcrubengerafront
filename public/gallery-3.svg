@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+  <rect width="600" height="400" fill="#4fd1c5"/>
+  <rect x="50" y="80" width="500" height="240" fill="#81e6d9" rx="10"/>
+  <rect x="100" y="120" width="150" height="100" fill="#4fd1c5" rx="5"/>
+  <rect x="120" y="140" width="40" height="60" fill="#fff"/>
+  <rect x="170" y="150" width="40" height="50" fill="#fff"/>
+  <rect x="220" y="130" width="30" height="70" fill="#fff"/>
+  <rect x="350" y="120" width="150" height="100" fill="#4fd1c5" rx="5"/>
+  <circle cx="380" cy="160" r="20" fill="#fff"/>
+  <circle cx="420" cy="160" r="20" fill="#fff"/>
+  <circle cx="460" cy="160" r="20" fill="#fff"/>
+  <text x="300" y="30" font-family="Arial" font-size="20" fill="#fff" text-anchor="middle">Sports Day</text>
+  <text x="300" y="370" font-family="Arial" font-size="14" fill="#fff" text-anchor="middle">Annual Sports Competition</text>
+</svg>

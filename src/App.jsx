@@ -209,6 +209,8 @@ function HomePage() {
       <AnnouncementTicker />
       <AboutPreview />
       <ProgramsPreview />
+      <AdministrationSection />
+      <GallerySection />
       <NewsPreview />
       <Footer />
     </div>
@@ -301,6 +303,89 @@ function NewsPreview() {
   return <PublicAnnouncementsPreview />;
 }
 
+// Administration Section
+function AdministrationSection() {
+  const { t } = useTranslation();
+  const admins = [
+    { title: 'schoolDirector', name: 'Dr. Emmanuel Hategeka', email: 'director@ttcrubengera.edu.rw', phone: '+250 788 100 001', image: '/admin-director.svg' },
+    { title: 'schoolDos', name: 'Ms. Claudine Mukamana', email: 'dos@ttcrubengera.edu.rw', phone: '+250 788 100 002', image: '/admin-dos.svg' },
+    { title: 'schoolDod', name: 'Mr. Jean Claude Niyonkuru', email: 'dod@ttcrubengera.edu.rw', phone: '+250 788 100 003', image: '/admin-dod.svg' },
+    { title: 'schoolBursar', name: 'Mrs. Marie Claire Uwase', email: 'bursar@ttcrubengera.edu.rw', phone: '+250 788 100 004', image: '/admin-bursar.svg' },
+  ];
+
+  return (
+    <section className="py-20 bg-white">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <h2 className="font-serif text-4xl md:text-5xl text-gs-dark mb-4">{t('ourAdministration')}</h2>
+          <p className="text-gray-500 mt-2">{t('administrationSubtitle')}</p>
+          <div className="w-24 h-1 bg-gs-accent mx-auto mt-4"></div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {admins.map((admin, index) => (
+            <div key={index} className="bg-gs-cream rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
+              <div className="relative h-56 bg-gs-dark">
+                <img src={admin.image} alt={t(admin.title)} className="w-full h-full object-cover" />
+              </div>
+              <div className="p-6">
+                <h3 className="text-gs-accent text-sm font-bold uppercase tracking-wider mb-1">{t(admin.title)}</h3>
+                <h4 className="font-serif text-xl font-bold text-gs-dark mb-4">{admin.name}</h4>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <p><i className="fa-solid fa-envelope mr-2 text-gs-accent"></i>{admin.email}</p>
+                  <p><i className="fa-solid fa-phone mr-2 text-gs-accent"></i>{admin.phone}</p>
+                </div>
+                <a
+                  href={`https://wa.me/${admin.phone.replace(/[^0-9]/g, '')}?text=Hello ${admin.name.split(' ').pop()}, I would like to chat with you.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 block w-full text-center bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg font-semibold transition-colors"
+                >
+                  <i className="fa-brands fa-whatsapp mr-2"></i>{t('chatWithThem')}
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Gallery Section
+function GallerySection() {
+  const { t } = useTranslation();
+  const photos = [
+    { id: 1, title: 'School Building', description: 'Main campus building of TTC Rubengera', image: '/gallery-1.svg' },
+    { id: 2, title: 'Students in Class', description: 'Active learning environment in our classrooms', image: '/gallery-2.svg' },
+    { id: 3, title: 'Sports Day', description: 'Annual sports competition and activities', image: '/gallery-3.svg' },
+  ];
+
+  return (
+    <section className="py-20 bg-gs-cream">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <h2 className="font-serif text-4xl md:text-5xl text-gs-dark mb-4">{t('ourGallery')}</h2>
+          <p className="text-gray-500 mt-2">{t('gallerySubtitle')}</p>
+          <div className="w-24 h-1 bg-gs-accent mx-auto mt-4"></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {photos.map((photo) => (
+            <div key={photo.id} className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
+              <div className="relative h-64 bg-gs-dark">
+                <img src={photo.image} alt={photo.title} className="w-full h-full object-cover" />
+              </div>
+              <div className="p-6">
+                <h3 className="font-serif text-xl font-bold text-gs-dark mb-2">{photo.title}</h3>
+                <p className="text-gray-600 text-sm">{photo.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // About Page
 function AboutPage() {
   const { t } = useTranslation();
@@ -350,6 +435,7 @@ function AboutPage() {
           </div>
         </div>
       </section>
+      <AdministrationSection />
       <Footer />
     </div>
   );
