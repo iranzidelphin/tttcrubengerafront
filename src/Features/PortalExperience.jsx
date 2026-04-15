@@ -493,6 +493,10 @@ function upsertConversation(current, message, fallbackUser = null) {
   });
 }
 
+function upsertGalleryPhoto(current, photo) {
+  return [photo, ...current.filter((item) => item.id !== photo.id)];
+}
+
 function RoleAnnouncements({ announcements, canPost, allowPublic, onCreated, defaultRoles }) {
   const { t } = useTranslation();
   return (
@@ -691,16 +695,15 @@ function AdminDashboard({ user, onLogout }) {
   const [selectedApplicationId, setSelectedApplicationId] = useState('');
   const [deletingUserId, setDeletingUserId] = useState('');
   const [deletingTaskId, setDeletingTaskId] = useState('');
-  const [galleryPhotos, setGalleryPhotos] = useState([
-    { id: 1, title: 'School Building', description: 'Main campus building of TTC Rubengera', image: '/gallery-1.svg' },
-    { id: 2, title: 'Students in Class', description: 'Active learning environment in our classrooms', image: '/gallery-2.svg' },
-    { id: 3, title: 'Sports Day', description: 'Annual sports competition and activities', image: '/gallery-3.svg' },
-  ]);
+  const [galleryPhotos, setGalleryPhotos] = useState([]);
   const [galleryForm, setGalleryForm] = useState({ title: '', description: '', file: null });
+  const [gallerySubmitting, setGallerySubmitting] = useState(false);
+  const [deletingGalleryPhotoId, setDeletingGalleryPhotoId] = useState('');
+  const galleryFileInputRef = useRef(null);
   const { notifications, dismissNotification, notifyAnnouncement, notifyComment } = useRealtimeNotifications();
 
   const loadAdminData = async () => {
-    const [announcementData, userData, applicationData, taskData, commentData, teacherChatData, parentChatData] = await Promise.all([
+    const [announcementData, userData, applicationData, taskData, commentData, teacherChatData, parentChatData, galleryData] = await Promise.all([
       apiRequest('/announcements'),
       apiRequest('/users'),
       apiRequest('/applications'),
@@ -708,6 +711,7 @@ function AdminDashboard({ user, onLogout }) {
       apiRequest('/tasks/comments/feed'),
       apiRequest('/chat/admin/teacher'),
       apiRequest('/chat/admin/parent'),
+      apiRequest('/gallery'),
     ]);
 
     setAnnouncements(announcementData.announcements);
@@ -717,6 +721,7 @@ function AdminDashboard({ user, onLogout }) {
     setTeacherComments(commentData.comments);
     setTeacherConversations(teacherChatData.conversations);
     setParentConversations(parentChatData.conversations);
+    setGalleryPhotos(galleryData.photos);
     setActiveTeacherId(teacherChatData.conversations[0]?.user.id || '');
     setActiveParentId(parentChatData.conversations[0]?.user.id || '');
   };
@@ -736,6 +741,12 @@ function AdminDashboard({ user, onLogout }) {
       setTeacherComments((current) => [comment, ...current.filter((item) => item.id !== comment.id)]);
       notifyComment(comment);
     };
+    const handleGalleryPhotoCreated = (photo) => {
+      setGalleryPhotos((current) => upsertGalleryPhoto(current, photo));
+    };
+    const handleGalleryPhotoDeleted = ({ photoId }) => {
+      setGalleryPhotos((current) => current.filter((item) => item.id !== photoId));
+    };
     const updateConversations = (current, message) => current.map((conversation) => {
       if (conversation.user.id === message.sender?.id || conversation.user.id === message.recipient?.id) {
         const messages = [...conversation.messages.filter((item) => item.id !== message.id), message];
@@ -749,10 +760,14 @@ function AdminDashboard({ user, onLogout }) {
     };
     socket.on('announcement:created', handleAnnouncement);
     socket.on('task:comment-created', handleComment);
+    socket.on('gallery:photo-created', handleGalleryPhotoCreated);
+    socket.on('gallery:photo-deleted', handleGalleryPhotoDeleted);
     socket.on('chat:message', handleChat);
     return () => {
       socket.off('announcement:created', handleAnnouncement);
       socket.off('task:comment-created', handleComment);
+      socket.off('gallery:photo-created', handleGalleryPhotoCreated);
+      socket.off('gallery:photo-deleted', handleGalleryPhotoDeleted);
       socket.off('chat:message', handleChat);
     };
   }, []);
@@ -796,26 +811,46 @@ function AdminDashboard({ user, onLogout }) {
     if (!window.confirm(t('confirmDeletePhoto'))) {
       return;
     }
-    setGalleryPhotos((current) => current.filter((p) => p.id !== photoId));
+
+    setDeletingGalleryPhotoId(photoId);
+
+    try {
+      await apiRequest(`/gallery/${photoId}`, { method: 'DELETE' });
+      setGalleryPhotos((current) => current.filter((photo) => photo.id !== photoId));
+    } finally {
+      setDeletingGalleryPhotoId('');
+    }
   };
 
-  const handleGalleryPhotoUpload = (event) => {
+  const handleGalleryPhotoUpload = async (event) => {
     event.preventDefault();
-    if (!galleryForm.title || !galleryForm.file) return;
-    
-    const file = galleryForm.file;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const newPhoto = {
-        id: Date.now(),
-        title: galleryForm.title,
-        description: galleryForm.description,
-        image: e.target.result,
-      };
-      setGalleryPhotos((current) => [...current, newPhoto]);
+
+    if (!galleryForm.title || !galleryForm.file) {
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', galleryForm.title);
+    formData.append('description', galleryForm.description);
+    formData.append('image', galleryForm.file);
+
+    setGallerySubmitting(true);
+
+    try {
+      const data = await apiRequest('/gallery', {
+        method: 'POST',
+        body: formData,
+      });
+
+      setGalleryPhotos((current) => upsertGalleryPhoto(current, data.photo));
       setGalleryForm({ title: '', description: '', file: null });
-    };
-    reader.readAsDataURL(file);
+
+      if (galleryFileInputRef.current) {
+        galleryFileInputRef.current.value = '';
+      }
+    } finally {
+      setGallerySubmitting(false);
+    }
   };
 
   const stats = useMemo(() => ({
@@ -876,28 +911,36 @@ function AdminDashboard({ user, onLogout }) {
               <input
                 type="file"
                 accept="image/*"
+                ref={galleryFileInputRef}
                 onChange={(e) => setGalleryForm((current) => ({ ...current, file: e.target.files?.[0] || null }))}
                 className="rounded-xl border border-gs-dark/10 px-4 py-2 w-full"
+                required
               />
             </div>
-            <button type="submit" className="px-5 py-2 rounded-xl bg-gs-accent text-white font-bold">
-              {t('uploadPhoto')}
+            <button
+              type="submit"
+              disabled={gallerySubmitting}
+              className="px-5 py-2 rounded-xl bg-gs-accent text-white font-bold disabled:opacity-60"
+            >
+              {gallerySubmitting ? t('saving') : t('uploadPhoto')}
             </button>
           </form>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {galleryPhotos.length ? galleryPhotos.map((photo) => (
               <div key={photo.id} className="bg-white rounded-xl overflow-hidden shadow border border-gs-dark/5">
                 <div className="relative h-40 bg-gs-dark">
-                  <img src={photo.image} alt={photo.title} className="w-full h-full object-cover" />
+                  <img src={buildFileUrl(photo.imageUrl)} alt={photo.title} className="w-full h-full object-cover" />
                 </div>
                 <div className="p-4">
                   <h4 className="font-bold text-gs-dark">{photo.title}</h4>
                   <p className="text-sm text-gray-500 mt-1">{photo.description}</p>
                   <button
+                    type="button"
                     onClick={() => handleGalleryPhotoDelete(photo.id)}
-                    className="mt-3 text-red-500 text-sm hover:text-red-700 font-semibold"
+                    disabled={deletingGalleryPhotoId === photo.id}
+                    className="mt-3 text-red-500 text-sm hover:text-red-700 font-semibold disabled:opacity-60"
                   >
-                    <i className="fa-solid fa-trash mr-1"></i> {t('deletePhoto')}
+                    <i className="fa-solid fa-trash mr-1"></i> {deletingGalleryPhotoId === photo.id ? t('deleting') : t('deletePhoto')}
                   </button>
                 </div>
               </div>

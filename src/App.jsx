@@ -4,11 +4,12 @@ import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './Components/LanguageSwitcher';
 import { AnnouncementsPageContent, PublicAnnouncementsPreview } from './Features/PublicAnnouncements';
 import { RolePortal } from './Features/PortalExperience';
-import { API_BASE_URL, apiJson, apiRequest, clearAuthSession, getDashboardRoute, getStoredUser, saveAuthSession } from './lib/api';
+import { API_BASE_URL, apiJson, apiRequest, buildFileUrl, clearAuthSession, getDashboardRoute, getStoredUser, saveAuthSession } from './lib/api';
 import { disconnectSocket } from './lib/socket';
 import './App.css';
 
 const BACKEND_KEEP_ALIVE_MS = 14 * 60 * 1000;
+const GALLERY_REFRESH_MS = 15000;
 
 function useBackendKeepAlive() {
   useEffect(() => {
@@ -354,11 +355,33 @@ function AdministrationSection() {
 // Gallery Section
 function GallerySection() {
   const { t } = useTranslation();
-  const photos = [
-    { id: 1, title: 'School Building', description: 'Main campus building of TTC Rubengera', image: '/gallery-1.svg' },
-    { id: 2, title: 'Students in Class', description: 'Active learning environment in our classrooms', image: '/gallery-2.svg' },
-    { id: 3, title: 'Sports Day', description: 'Annual sports competition and activities', image: '/gallery-3.svg' },
-  ];
+  const [photos, setPhotos] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadGallery = async () => {
+      try {
+        const data = await apiRequest('/gallery');
+
+        if (!cancelled) {
+          setPhotos(data.photos);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPhotos([]);
+        }
+      }
+    };
+
+    loadGallery();
+    const intervalId = window.setInterval(loadGallery, GALLERY_REFRESH_MS);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   return (
     <section className="py-20 bg-gs-cream">
@@ -369,17 +392,21 @@ function GallerySection() {
           <div className="w-24 h-1 bg-gs-accent mx-auto mt-4"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {photos.map((photo) => (
+          {photos.length ? photos.map((photo) => (
             <div key={photo.id} className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-shadow duration-300">
               <div className="relative h-64 bg-gs-dark">
-                <img src={photo.image} alt={photo.title} className="w-full h-full object-cover" />
+                <img src={buildFileUrl(photo.imageUrl)} alt={photo.title} className="w-full h-full object-cover" />
               </div>
               <div className="p-6">
                 <h3 className="font-serif text-xl font-bold text-gs-dark mb-2">{photo.title}</h3>
                 <p className="text-gray-600 text-sm">{photo.description}</p>
               </div>
             </div>
-          ))}
+          )) : (
+            <div className="col-span-full rounded-2xl bg-white p-8 text-center text-gray-500 shadow-sm">
+              {t('noPhotos')}
+            </div>
+          )}
         </div>
       </div>
     </section>
@@ -1084,5 +1111,4 @@ function App() {
 }
 
 export default App;
-
 
